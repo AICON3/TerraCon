@@ -1,0 +1,338 @@
+##################################################
+# Trigait Angle + Gait Multi-task Prediction Experiment Config
+##################################################
+
+
+project_name: Trigait_angle_gait
+
+
+python_env: py38
+
+
+
+# ==================================================
+# Dataset
+# ==================================================
+
+split_type: subject_scene_split
+
+
+input_length: 200
+
+
+prediction_length: 30
+
+
+imu_channels: 42
+
+
+
+
+# ==================================================
+# Training
+# ==================================================
+
+epochs: 50
+
+
+batch_size: 64
+
+
+learning_rate: 0.0001
+
+
+weight_decay: 0.0001
+
+
+
+seed: 2026
+
+
+
+
+
+# ==================================================
+# Models
+# ==================================================
+
+models:
+
+
+  TCN:
+    enabled: true
+
+
+  LSTM:
+    enabled: true
+
+
+  Transformer:
+    enabled: true
+
+
+  GPT4TS:
+    enabled: true
+
+
+  TimesNet:
+    enabled: true
+
+
+  PatchTST:
+    enabled: true
+
+
+  TimeMixer:
+    enabled: true
+
+
+  Mamba:
+    enabled: true
+
+
+  Persistence:
+    enabled: true
+
+
+
+
+
+
+# ==================================================
+# Model Parameters
+# ==================================================
+
+
+TCN:
+
+  hidden_channels:
+
+    - 64
+
+    - 128
+
+    - 128
+
+  kernel_size: 3
+
+  dropout: 0.2
+
+
+
+
+LSTM:
+
+  hidden_dim: 128
+
+  num_layers: 2
+
+  dropout: 0.2
+
+
+
+
+Transformer:
+
+  d_model: 128
+
+  n_heads: 4
+
+  num_layers: 3
+
+  dim_feedforward: 256
+
+  dropout: 0.2
+
+
+
+
+GPT4TS:
+
+  freeze: true
+
+
+
+
+TimesNet:
+
+  d_model: 64
+
+  d_ff: 128
+
+  num_layers: 2
+
+  dropout: 0.1
+
+
+
+
+PatchTST:
+
+  patch_len: 16
+
+  stride: 8
+
+
+
+
+TimeMixer:
+
+  d_model: 64
+
+
+
+
+Mamba:
+
+  d_model: 64
+
+
+
+
+
+
+# ==================================================
+# Multi-task Prediction
+# ==================================================
+
+tasks:
+
+
+  angle:
+
+    enabled: true
+
+    dimension: 8
+
+
+
+  gait:
+
+    enabled: true
+
+    dimension: 2
+
+
+
+
+
+
+# ==================================================
+# Evaluation
+# ==================================================
+
+evaluation:
+
+
+  save_excel: true
+
+
+  save_json: true
+
+
+  save_plots: true
+
+
+  save_predictions: true
+
+
+
+  metrics:
+
+
+    regression:
+
+      - MAE
+
+      - RMSE
+
+      - R2
+
+      - Pearson
+
+      - MAPE
+
+
+
+    classification:
+
+      - Accuracy
+
+      - Precision
+
+      - Recall
+
+      - F1
+
+      - ConfusionMatrix
+
+
+
+
+
+
+# ==================================================
+# Output
+# ==================================================
+
+output:
+
+
+  checkpoints_dir:
+
+    checkpoints
+
+
+  results_dir:
+
+    results
+
+
+  evaluation_dir:
+
+    evaluation_results
+
+
+
+
+
+
+# ==================================================
+# Experiment
+# ==================================================
+
+experiment:
+
+
+  input:
+
+    description:
+
+      "Past 200 frames IMU signals"
+
+
+
+  output:
+
+    description:
+
+      "Future 30 frames angle and gait prediction"
+
+
+
+  outputs:
+
+
+    joint_angle:
+
+      shape:
+
+        "[B,30,8]"
+
+
+
+    gait_phase:
+
+      shape:
+
+        "[B,30,2]"

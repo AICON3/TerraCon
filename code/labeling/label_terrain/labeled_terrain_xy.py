@@ -1,0 +1,926 @@
+import os
+import re
+import zipfile
+import numpy as np
+import pandas as pd
+
+
+# ============================================================
+# 0. 配置区
+# ============================================================
+
+# 只需要改这里
+SUBJECT_ID = "sub_041"
+
+# 项目根目录
+PROJECT_ROOT = r"E:\data"
+
+
+
+TERRAIN_NAMES = ["xy5"]
+
+# ============================================================
+# 想处理 fwd / bwd 哪个方向，也可以在这里改
+# ============================================================
+
+# 只处理 fwd
+# DIRECTIONS = ["fwd"]
+
+# 只处理 bwd
+# DIRECTIONS = ["bwd"]
+
+# 同时处理 fwd 和 bwd
+DIRECTIONS = ["fwd", "bwd"]
+
+# 自动生成输入文件夹
+INPUT_DIR = os.path.join(
+    PROJECT_ROOT,
+    f"{SUBJECT_ID}_label",
+)
+
+# 自动生成输入文件
+INPUT_FILES = [
+    os.path.join(
+        INPUT_DIR,
+        f"{SUBJECT_ID}_{terrain_name}_{direction}_aligned_labeled.xlsx",
+    )
+    for terrain_name in TERRAIN_NAMES
+    for direction in DIRECTIONS
+]
+
+# 是否打印详细事件映射
+PRINT_EVENTS = False
+
+# 是否执行最后强制归 0
+FORCE_ZERO_FROM_LAST_RIGHT_LABEL3 = True
+
+
+
+# ============================================================
+# 1. XY1 ~ XY6 标签文本
+# ============================================================
+
+LABEL_TEXT = r"""
+xy1_fwd
+单侧
+x:3, -18, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10,  5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5,5, -5, -10, 10, 5, -5, 5,-5, -13,28,0
+y:26.5,91.5,150,140,130,170,160,150,140,130,170,140,130,140,130,170、140,110,120,130,170,140,110,150,160,170,140,110,150,140,150,140,110,150,140,130,125,50,0
+同侧
+x:3,21,26,31,36,41,31,21,26,31,36,41,31,21,26,31,36,41,31,21,26,31,36,41,31,21,26,31,36,41,31,21,26,31,36,41,28,0,0
+y:26.5,65,85,55,75,95,65,85,55,75,95,45,85,55,75,95,45,65,55,75,95,45,65,85,75,95,45,65,85,55,95,45,65,85,55,75,50,0,0
+
+xy1_bwd
+单侧
+x:28, -13, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, -18, 3,0
+y:50, 125, 130, 140, 150, 110, 140, 150, 140, 150, 110, 140, 170, 160, 150, 110, 140, 170, 130, 120, 110, 140, 170, 130, 140, 130, 140, 170, 130, 140, 150, 160, 170, 130, 140, 150, 91.5, 26.5,0
+同侧
+x:28, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21,3,0,0
+y:50, 75, 55, 85, 65, 45, 95, 55, 85, 65, 45, 95, 75, 85, 65, 45, 95, 75, 55, 65, 45, 95, 75, 55, 85, 45, 95, 75, 55, 85, 65, 95, 75, 55, 85, 65, 26.5,0,0
+
+xy2_fwd
+单侧
+x:3, -18, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -13,28,0
+y:26.5, 91.5, 150, 140, 130, 170, 160, 150, 140, 130, 170, 140, 100, 130, 170, 140, 110, 150, 160, 170, 140, 110, 150, 140, 140, 140, 130, 170, 140, 110, 160, 140, 110, 150, 140, 130, 125,50,0
+同侧
+x:3, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 28,0,0
+y:26.5, 65, 85, 55, 75, 95, 65, 85, 55, 75, 95, 45, 55, 75, 95, 45, 65, 85, 75, 95, 45, 65, 85, 55, 85, 55, 75, 95, 45, 65, 95, 45, 65, 85, 55, 75, 50,0,0
+
+xy2_bwd
+单侧
+x:28,-13, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, -18, 3,0
+y:50,125, 130, 140, 150, 110, 140, 160, 110, 140, 170, 130, 140, 140, 140, 150, 110, 140, 170, 160, 150, 110, 140, 170, 130, 100, 140, 170, 130, 140, 150, 160, 170, 130, 140, 150, 91.5, 26.5,0
+同侧
+x:28, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 3,0,0
+y:50, 75, 55, 85, 65, 45, 95, 65, 45, 95, 75, 55, 85, 55, 85, 65, 45, 95, 75, 85, 65, 45, 95, 75, 55, 45, 95, 75, 55, 85, 65, 95, 75, 55, 85, 65, 26.5,0,0
+
+xy3_fwd
+单侧
+x:3, -18, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -13,28,0
+y:26.5, 91.5, 150, 140, 130, 170, 180, 140, 130, 170, 140, 110, 120, 130, 170, 140, 110, 150, 150, 150, 140, 130, 170, 140, 120, 170, 140, 110, 150, 140, 150, 140, 110, 150, 140, 130, 125,50,0
+同侧
+x:3, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 28,0,0
+y:26.5, 65, 85, 55, 75, 95, 85, 55, 75, 95, 45, 65, 55, 75, 95, 45, 65, 85, 65, 85, 55, 75, 95, 45, 75, 95, 45, 65, 85, 55, 95, 45, 65, 85, 55, 75, 50,0,0
+
+xy3_bwd
+单侧
+x:28,-13, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, -18, 3,0
+y:50,125, 130, 140, 150, 110, 140, 150, 140, 150, 110, 140, 170, 120, 140, 170, 130, 140, 150, 150, 150, 110, 140, 170, 130, 120, 110, 140, 170, 130, 140, 180, 170, 130, 140, 150, 91.5, 26.5,0
+同侧
+x:28, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 3,0,0
+y:50, 75, 55, 85, 65, 45, 95, 55, 85, 65, 45, 95, 75, 45, 95, 75, 55, 85, 65, 85, 65, 45, 95, 75, 55, 65, 45, 95, 75, 55, 85, 95, 75, 55, 85, 65, 26.5,0,0
+
+xy4_fwd
+单侧
+x:3, -18, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -13,28,0
+y:26.5, 91.5, 150, 140, 130, 170, 170, 170, 140, 110, 150, 140, 110, 130, 170, 140, 110, 150, 150, 150, 140, 130, 170, 140, 130, 140, 130, 170, 140, 110, 160, 140, 110, 150, 140, 130, 125,50,0
+同侧
+x:3, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 28,0,0
+y:26.5, 65, 85, 55, 75, 95, 75, 95, 45, 65, 85, 55, 55, 75, 95, 45, 65, 85, 65, 85, 55, 75, 95, 45, 85, 55, 75, 95, 45, 65, 95, 45, 65, 85, 55, 75, 50,0,0
+
+xy4_bwd
+单侧
+x:28,-13, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, -18, 3,0
+y:50,125, 130, 140, 150, 110, 140, 160, 110, 140, 170, 130, 140, 130, 140, 170, 130, 140, 150, 150, 150, 110, 140, 170, 130, 110, 140, 150, 110, 140, 170, 170, 170, 130, 140, 150, 91.5, 26.5,0
+同侧
+x:28, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 3,0,0
+y:50, 75, 55, 85, 65, 45, 95, 65, 45, 95, 75, 55, 85, 45, 95, 75, 55, 85, 65, 85, 65, 45, 95, 75, 55, 55, 85, 65, 45, 95, 75, 95, 75, 55, 85, 65, 26.5,0,0
+
+xy5_fwd
+单侧
+x:3, -18, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -13,28,0
+y:26.5, 91.5, 150, 140, 130, 170, 150, 130, 170, 140, 110, 150, 170, 140, 130, 170, 140, 110, 140, 170, 140, 110, 150, 140, 120, 150, 140, 130, 170, 140, 140, 140, 110, 150, 140, 130, 125,50,0
+同侧
+x:3, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 28,0,0
+y:26.5, 65, 85, 55, 75, 95, 55, 75, 95, 45, 65, 85, 85, 55, 75, 95, 45, 65, 75, 95, 45, 65, 85, 55, 65, 85, 55, 75, 95, 45, 95, 45, 65, 85, 55, 75, 50,0,0
+
+xy5_bwd
+单侧
+x:28,-13, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, -18, 3,0
+y:50,125, 130, 140, 150, 110, 140, 140, 140, 170, 130, 140, 150, 120, 140, 150, 110, 140, 170, 140, 110, 140, 170, 130, 140, 170, 150, 110, 140, 170, 130, 150, 170, 130, 140, 150, 91.5, 26.5,0
+同侧
+x:28, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 3,0,0
+y:50, 75, 55, 85, 65, 45, 95, 45, 95, 75, 55, 85, 65, 55, 85, 65, 45, 95, 75, 65, 45, 95, 75, 55, 85, 85, 65, 45, 95, 75, 55, 95, 75, 55, 85, 65, 26.5,0,0
+
+xy6_fwd
+单侧
+x:3, -18, 5, -5, 5, -5, 3, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, -18, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -10, 10, 5, -5, 5, -5, -13,28,0
+y:26.5, 91.5, 150, 140, 130, 170, 130, 150, 140, 130, 170, 140, 170, 140, 130, 170, 140, 110, 150, 130, 170, 140, 110, 150, 120, 170, 140, 110, 150, 140, 150, 140, 110, 150, 140, 130, 125,50,0
+同侧
+x:3, 21, 26, 31, 36, 41, 3, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 31, 21, 26, 31, 36, 41, 28，0,0
+y:26.5, 65, 85, 55, 75, 95, 65, 85, 55, 75, 95, 45, 85, 55, 75, 95, 45, 65, 55, 75, 95, 45, 65, 85, 75, 95, 45, 65, 85, 55, 95, 45, 65, 85, 55, 75, 50,0,0
+
+xy6_bwd
+单侧
+x:28，-13, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, -18, -10, -5, 5, -5, 5, 10, -10, -5, 5, -5, 5, 10, 3, -5, 5, -5, 5, -18, 3,0
+y:50，125, 130, 140, 150, 110, 140, 150, 140, 150, 110, 140, 170, 120, 150, 110, 140, 170, 130, 150, 110, 140, 170, 130, 140, 170, 140, 170, 130, 140, 150, 130, 140, 170, 130, 150, 91.5, 26.5,0
+同侧
+x:,28, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 31, 41, 36, 31, 26, 21, 3, 41, 36, 31, 26, 21, 3，0,0
+y:50, 75, 55, 85, 65, 45, 95, 55, 85, 65, 45, 95, 75, 85, 65, 45, 95, 75, 55, 65, 45, 95, 75, 55, 85, 45, 95, 75, 55, 85, 65, 45, 95, 75, 85, 65, 26.5,0,0
+"""
+
+
+
+# ============================================================
+# 2. 解析标签文本
+# ============================================================
+
+def parse_number_list(s):
+    """
+    从字符串中提取数字。
+    支持：
+        英文逗号
+        中文逗号
+        顿号
+        小数
+        负数
+    """
+    nums = re.findall(r"-?\d+(?:\.\d+)?", s)
+
+    values = []
+
+    for n in nums:
+        v = float(n)
+
+        if v.is_integer():
+            v = int(v)
+
+        values.append(v)
+
+    return values
+
+
+def build_xy_label_dict():
+    """
+    解析 LABEL_TEXT，生成 LABELS。
+    """
+    labels = {}
+
+    current_direction = None
+    current_type = None
+
+    valid_dirs = {
+        "xy1_fwd", "xy1_bwd",
+        "xy2_fwd", "xy2_bwd",
+        "xy3_fwd", "xy3_bwd",
+        "xy4_fwd", "xy4_bwd",
+        "xy5_fwd", "xy5_bwd",
+        "xy6_fwd", "xy6_bwd",
+    }
+
+    for raw_line in LABEL_TEXT.splitlines():
+        line = raw_line.strip()
+
+        if not line:
+            continue
+
+        low = line.lower()
+
+        if low in valid_dirs:
+            current_direction = low
+            labels[current_direction] = {
+                "single": {},
+                "same": {},
+            }
+            current_type = None
+            continue
+
+        if line == "单侧":
+            current_type = "single"
+            continue
+
+        if line == "同侧":
+            current_type = "same"
+            continue
+
+        if current_direction is None or current_type is None:
+            continue
+
+        if low.startswith("x"):
+            labels[current_direction][current_type]["x"] = parse_number_list(line)
+            continue
+
+        if low.startswith("y"):
+            labels[current_direction][current_type]["y"] = parse_number_list(line)
+            continue
+
+    return labels
+
+
+LABELS = build_xy_label_dict()
+
+
+# ============================================================
+# 3. Excel 自动读取
+# ============================================================
+
+def read_excel_auto_sheet(input_file):
+    """
+    自动读取 Excel 文件。
+    优先读取 data/Data/DATA 工作表。
+    如果没有，则读取第一个工作表。
+    """
+    try:
+        xls = pd.ExcelFile(input_file)
+
+    except zipfile.BadZipFile:
+        raise RuntimeError(
+            "当前文件不是有效的 .xlsx 文件，可能文件损坏，或者只是被改名成 .xlsx。\n"
+            f"文件: {input_file}\n"
+            "建议用 Excel/WPS 打开后重新另存为真正的 Excel 工作簿 (*.xlsx)。"
+        )
+
+    except Exception as e:
+        raise RuntimeError(
+            "读取 Excel 文件失败。\n"
+            f"文件: {input_file}\n"
+            f"错误类型: {type(e).__name__}\n"
+            f"错误信息: {e}"
+        )
+
+    preferred_sheets = ["data", "Data", "DATA"]
+
+    sheet_name = None
+
+    for name in preferred_sheets:
+        if name in xls.sheet_names:
+            sheet_name = name
+            break
+
+    if sheet_name is None:
+        sheet_name = xls.sheet_names[0]
+
+    df = pd.read_excel(input_file, sheet_name=sheet_name)
+
+    return df, sheet_name
+
+
+# ============================================================
+# 4. 文件名方向判断
+# ============================================================
+
+def detect_xy_direction_from_filename(input_file):
+    """
+    从文件名判断 xy1_fwd ~ xy6_bwd。
+    """
+    basename = os.path.basename(input_file).lower()
+
+    patterns = [
+        "xy1_fwd", "xy1_bwd",
+        "xy2_fwd", "xy2_bwd",
+        "xy3_fwd", "xy3_bwd",
+        "xy4_fwd", "xy4_bwd",
+        "xy5_fwd", "xy5_bwd",
+        "xy6_fwd", "xy6_bwd",
+    ]
+
+    for p in patterns:
+        if p in basename:
+            return p
+
+    raise ValueError(
+        "无法从文件名判断方向，请确保文件名包含 xy1_fwd ~ xy6_bwd。\n"
+        f"当前文件: {input_file}"
+    )
+
+
+# ============================================================
+# 5. 输出路径
+# ============================================================
+
+def extract_subject_id(input_file):
+    text = input_file.replace("\\", "/")
+    match = re.search(r"(sub_\d+)", text, flags=re.IGNORECASE)
+
+    if match:
+        return match.group(1)
+
+    basename = os.path.basename(input_file)
+    stem = os.path.splitext(basename)[0]
+
+    return stem.split("_")[0]
+
+
+def build_output_file(input_file):
+    subject_id = extract_subject_id(input_file)
+
+    input_dir = os.path.dirname(input_file)
+    parent_dir = os.path.dirname(input_dir)
+
+    if not parent_dir:
+        parent_dir = input_dir if input_dir else "."
+
+    output_dir = os.path.join(
+        parent_dir,
+        f"{subject_id}_labeled_terrain",
+    )
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    basename = os.path.basename(input_file)
+    stem, ext = os.path.splitext(basename)
+
+    output_file = os.path.join(
+        output_dir,
+        f"{stem}_terrain{ext}",
+    )
+
+    return output_file
+
+
+def save_excel_safely(df, output_file, sheet_name="data"):
+    """
+    安全保存 Excel。
+    如果目标文件被打开，自动另存为 _v2、_v3 ...
+    """
+    out_dir = os.path.dirname(output_file)
+
+    if out_dir and not os.path.exists(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+
+    try:
+        df.to_excel(
+            output_file,
+            index=False,
+            sheet_name=sheet_name if sheet_name else "data",
+        )
+        return output_file
+
+    except PermissionError:
+        folder = os.path.dirname(output_file)
+        base = os.path.splitext(os.path.basename(output_file))[0]
+        ext = os.path.splitext(output_file)[1]
+
+        for i in range(2, 100):
+            new_file = os.path.join(folder, f"{base}_v{i}{ext}")
+
+            try:
+                df.to_excel(
+                    new_file,
+                    index=False,
+                    sheet_name=sheet_name if sheet_name else "data",
+                )
+                return new_file
+
+            except PermissionError:
+                continue
+
+        raise PermissionError("尝试多个备用文件名后仍无法保存，请关闭 Excel/WPS 后重试。")
+
+
+# ============================================================
+# 6. 事件检测
+# ============================================================
+
+def detect_label_value_rising_edges(df, label_col, label_value, side_name):
+    """
+    检测 label == label_value 的起始点。
+    连续一段 label==3 只算一个事件。
+    """
+    if label_col not in df.columns:
+        raise KeyError(f"缺少列: {label_col}")
+
+    label = pd.to_numeric(df[label_col], errors="coerce").fillna(0).to_numpy()
+
+    is_target = label == label_value
+    prev_is_target = np.r_[False, is_target[:-1]]
+
+    rising = is_target & (~prev_is_target)
+    idxs = np.where(rising)[0]
+
+    events = []
+
+    for idx in idxs:
+        if "time_s" in df.columns:
+            time_s = float(df.loc[idx, "time_s"])
+        else:
+            time_s = float(idx)
+
+        events.append(
+            {
+                "idx": int(idx),
+                "time_s": time_s,
+                "side": side_name,
+                "label_col": label_col,
+                "label_value": label_value,
+            }
+        )
+
+    return events
+
+
+def collect_xy_terrain_events(df):
+    """
+    XY1~XY6 贴标事件规则：
+
+    第 1 个事件：
+        第一个 l_label == 3
+
+    第 2 个事件：
+        第二个 l_label == 3
+
+    第 3 个事件：
+        第二个 l_label == 3 之后，第一个 r_label == 3
+
+    第 4 个事件及以后：
+        第三个事件之后，l_label == 3 或 r_label == 3
+
+    最后：
+        最后一个 r_label == 3 开始强制归 0。
+    """
+    l3_events = detect_label_value_rising_edges(
+        df=df,
+        label_col="l_label",
+        label_value=3,
+        side_name="L",
+    )
+
+    r3_events = detect_label_value_rising_edges(
+        df=df,
+        label_col="r_label",
+        label_value=3,
+        side_name="R",
+    )
+
+    if len(l3_events) < 2:
+        raise RuntimeError("l_label == 3 的起始事件少于 2 个，无法执行 XY 贴标规则。")
+
+    if len(r3_events) < 1:
+        raise RuntimeError("r_label == 3 的起始事件少于 1 个，无法执行 XY 贴标规则。")
+
+    events = []
+
+    first_event = dict(l3_events[0])
+    first_event["event_rule"] = "first_l_label_3_start_first_label"
+    events.append(first_event)
+
+    second_event = dict(l3_events[1])
+    second_event["event_rule"] = "second_l_label_3"
+    events.append(second_event)
+
+    second_idx = second_event["idx"]
+
+    r3_after_second = [
+        e for e in r3_events
+        if e["idx"] > second_idx
+    ]
+
+    if len(r3_after_second) == 0:
+        raise RuntimeError("第二个 l_label == 3 后没有找到 r_label == 3。")
+
+    third_event = dict(r3_after_second[0])
+    third_event["event_rule"] = "third_r_label_3_after_second_l3"
+    events.append(third_event)
+
+    third_idx = third_event["idx"]
+
+    left_l3_after_third = [
+        e for e in l3_events
+        if e["idx"] > third_idx
+    ]
+
+    right_r3_after_third = [
+        e for e in r3_events
+        if e["idx"] > third_idx
+    ]
+
+    later_events = left_l3_after_third + right_r3_after_third
+    later_events = sorted(later_events, key=lambda e: e["idx"])
+
+    for e in later_events:
+        e["event_rule"] = "later_l_or_r_label_3"
+
+    events.extend(later_events)
+
+    return events, l3_events, r3_events
+
+
+# ============================================================
+# 7. 标签获取与数量检查
+# ============================================================
+
+def get_xy_sequences(direction):
+    """
+    根据方向获取你给的标签序列。
+    """
+    if direction not in LABELS:
+        raise ValueError(f"没有找到方向 {direction} 的标签。请检查 LABEL_TEXT 是否包含该方向。")
+
+    item = LABELS[direction]
+
+    required = [
+        ("single", "x"),
+        ("single", "y"),
+        ("same", "x"),
+        ("same", "y"),
+    ]
+
+    for terrain_type, axis in required:
+        if terrain_type not in item or axis not in item[terrain_type]:
+            raise ValueError(
+                f"{direction} 缺少标签: {terrain_type} {axis}。"
+            )
+
+    return {
+        "terrain_x_single_label": item["single"]["x"],
+        "terrain_y_single_label": item["single"]["y"],
+        "terrain_x_same_label": item["same"]["x"],
+        "terrain_y_same_label": item["same"]["y"],
+    }
+
+
+def get_sequence_lengths(sequences):
+    """
+    获取你给的标签数量。
+    """
+    return {
+        col: len(seq)
+        for col, seq in sequences.items()
+    }
+
+
+def check_event_label_count_match(events, sequences):
+    """
+    检查事件数量和你给的标签数量是否一致。
+    """
+    event_count = len(events)
+
+    for col, seq in sequences.items():
+        if len(seq) != event_count:
+            return False
+
+    return True
+
+
+def print_count_summary(direction, sequences, events, l3_events, r3_events):
+    """
+    打印简洁数量结果：
+        原始标签数量 = 你在 LABEL_TEXT 里给的标签序列数量
+        事件标签数量 = 根据 l_label/r_label 检测到的贴标事件数量
+    """
+    seq_lens = get_sequence_lengths(sequences)
+
+    print("=" * 100)
+    print(f"[数量结果] {direction}")
+
+    print(
+        f"原始标签数量/你给的标签数量: "
+        f"x_single={seq_lens['terrain_x_single_label']}, "
+        f"y_single={seq_lens['terrain_y_single_label']}, "
+        f"x_same={seq_lens['terrain_x_same_label']}, "
+        f"y_same={seq_lens['terrain_y_same_label']}"
+    )
+
+    print(
+        f"事件标签数量/实际检测到的贴标事件数量: "
+        f"{len(events)}"
+    )
+
+    print(
+        f"原始 label==3 起始事件数量: "
+        f"l_label==3事件={len(l3_events)}, "
+        f"r_label==3事件={len(r3_events)}"
+    )
+
+    if check_event_label_count_match(events, sequences):
+        print("数量检查结果: 通过")
+    else:
+        print("数量检查结果: 不通过")
+
+    print("=" * 100)
+
+
+# ============================================================
+# 8. 贴标签
+# ============================================================
+
+def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_label=0):
+    """
+    第一个事件之前为 0。
+    第 k 个事件到第 k+1 个事件之前贴 terrain_sequence[k]。
+    """
+    if len(events) != len(terrain_sequence):
+        raise ValueError(
+            f"{output_col}: 事件数量 {len(events)} 和标签数量 {len(terrain_sequence)} 不一致。"
+        )
+
+    n = len(df)
+
+    terrain = np.full(
+        n,
+        initial_label,
+        dtype=float,
+    )
+
+    for k, event in enumerate(events):
+        start_idx = event["idx"]
+
+        if k + 1 < len(events):
+            end_idx = events[k + 1]["idx"]
+        else:
+            end_idx = n
+
+        value = terrain_sequence[k]
+        terrain[start_idx:end_idx] = value
+
+    df[output_col] = terrain
+
+    return df
+
+
+def force_zero_from_last_right_label3(df, output_cols):
+    """
+    从最后一个 r_label == 3 起始事件开始强制置 0。
+    """
+    r3_events = detect_label_value_rising_edges(
+        df=df,
+        label_col="r_label",
+        label_value=3,
+        side_name="R",
+    )
+
+    if len(r3_events) == 0:
+        return df
+
+    last_right_idx = int(r3_events[-1]["idx"])
+
+    for col in output_cols:
+        if col in df.columns:
+            df.loc[last_right_idx:, col] = 0
+
+    return df
+
+
+# ============================================================
+# 9. 可选事件映射打印
+# ============================================================
+
+def print_event_mapping(events, sequence, title):
+    """
+    可选打印事件映射。
+    默认 PRINT_EVENTS=False，不会调用。
+    """
+    print("=" * 130)
+    print(title)
+    print("-" * 130)
+    print(
+        f"{'No.':>4} | "
+        f"{'idx':>8} | "
+        f"{'time_s':>10} | "
+        f"{'side':>4} | "
+        f"{'source':>8} | "
+        f"{'value':>6} | "
+        f"{'rule':>34} | "
+        f"{'terrain':>10}"
+    )
+    print("-" * 130)
+
+    for k, event in enumerate(events):
+        value = sequence[k]
+
+        print(
+            f"{k + 1:>4} | "
+            f"{event['idx']:>8} | "
+            f"{event['time_s']:>10.4f} | "
+            f"{event['side']:>4} | "
+            f"{event['label_col']:>8} | "
+            f"{event.get('label_value', ''):>6} | "
+            f"{event.get('event_rule', ''):>34} | "
+            f"{value:>10}"
+        )
+
+    print("-" * 130)
+    print(f"事件数量: {len(events)}")
+    print(f"标签数量: {len(sequence)}")
+    print("=" * 130)
+
+
+# ============================================================
+# 10. 处理单个文件
+# ============================================================
+
+def process_one_file(input_file):
+    direction = detect_xy_direction_from_filename(input_file)
+
+    df, sheet_name = read_excel_auto_sheet(input_file)
+
+    required_cols = ["l_label", "r_label"]
+
+    missing = [
+        col for col in required_cols
+        if col not in df.columns
+    ]
+
+    if missing:
+        raise KeyError(
+            "当前表格缺少必要列：\n"
+            + "\n".join(missing)
+        )
+
+    # 内部检测事件，不打印寻找过程
+    events, l3_events, r3_events = collect_xy_terrain_events(df)
+
+    # 获取你给的标签序列
+    sequences = get_xy_sequences(direction)
+
+    # 打印数量结果
+    print_count_summary(
+        direction=direction,
+        sequences=sequences,
+        events=events,
+        l3_events=l3_events,
+        r3_events=r3_events,
+    )
+
+    # 数量检查
+    ok = check_event_label_count_match(
+        events=events,
+        sequences=sequences,
+    )
+
+    if not ok:
+        seq_lens = get_sequence_lengths(sequences)
+
+        raise RuntimeError(
+            f"{direction} 事件数量和你给的标签数量不一致。\n"
+            f"事件标签数量: {len(events)}\n"
+            f"原始标签数量/你给的标签数量: {seq_lens}"
+        )
+
+    # 可选打印事件映射
+    if PRINT_EVENTS:
+        for col, seq in sequences.items():
+            print_event_mapping(
+                events=events,
+                sequence=seq,
+                title=f"[{direction} {col} 标签映射]",
+            )
+
+    # 贴标签
+    for col, seq in sequences.items():
+        df = apply_terrain_sequence(
+            df=df,
+            events=events,
+            terrain_sequence=seq,
+            output_col=col,
+            initial_label=0,
+        )
+
+    # 最后从最后一个 r_label == 3 开始归 0
+    if FORCE_ZERO_FROM_LAST_RIGHT_LABEL3:
+        df = force_zero_from_last_right_label3(
+            df=df,
+            output_cols=list(sequences.keys()),
+        )
+
+    output_file = build_output_file(input_file)
+
+    actual_output_file = save_excel_safely(
+        df=df,
+        output_file=output_file,
+        sheet_name=sheet_name if sheet_name else "data",
+    )
+
+    return {
+        "direction": direction,
+        "input_file": input_file,
+        "output_file": actual_output_file,
+        "event_count": len(events),
+        "l3_event_count": len(l3_events),
+        "r3_event_count": len(r3_events),
+        "sequence_lengths": get_sequence_lengths(sequences),
+        "row_count": len(df),
+    }
+
+
+# ============================================================
+# 11. 主程序
+# ============================================================
+
+def main():
+    print("=" * 100)
+    print("[XY1~XY6 地形标签批处理开始]")
+    print(f"被试: {SUBJECT_ID}")
+    print(f"输入文件夹: {INPUT_DIR}")
+    print(f"待处理文件数量: {len(INPUT_FILES)}")
+    print("=" * 100)
+
+    results = []
+    failed_files = []
+
+    for input_file in INPUT_FILES:
+        if not os.path.exists(input_file):
+            failed_files.append(
+                {
+                    "file": input_file,
+                    "reason": "文件不存在",
+                }
+            )
+
+            print("=" * 100)
+            print("[跳过] 文件不存在")
+            print(input_file)
+            print("=" * 100)
+
+            continue
+
+        try:
+            result = process_one_file(input_file)
+            results.append(result)
+
+            print(
+                f"[完成] {result['direction']} | "
+                f"行数: {result['row_count']} | "
+                f"事件标签数量: {result['event_count']} | "
+                f"输出: {result['output_file']}"
+            )
+
+        except Exception as e:
+            failed_files.append(
+                {
+                    "file": input_file,
+                    "reason": f"{type(e).__name__}: {e}",
+                }
+            )
+
+            print("=" * 100)
+            print("[失败] 当前文件处理失败，已跳过")
+            print(f"文件: {input_file}")
+            print(f"错误类型: {type(e).__name__}")
+            print(f"错误信息: {e}")
+            print("=" * 100)
+
+            continue
+
+    print("\n")
+    print("#" * 100)
+    print("[全部处理完成]")
+    print(f"成功数量: {len(results)}")
+    print(f"失败数量: {len(failed_files)}")
+    print("#" * 100)
+
+    if results:
+        print("\n[成功生成文件]")
+        for r in results:
+            seq_lens = r["sequence_lengths"]
+
+            print(
+                f"{r['direction']} | "
+                f"原始标签数量: "
+                f"x_single={seq_lens['terrain_x_single_label']}, "
+                f"y_single={seq_lens['terrain_y_single_label']}, "
+                f"x_same={seq_lens['terrain_x_same_label']}, "
+                f"y_same={seq_lens['terrain_y_same_label']} | "
+                f"事件标签数量={r['event_count']} | "
+                f"输出={r['output_file']}"
+            )
+
+    if failed_files:
+        print("\n[失败文件]")
+        for item in failed_files:
+            print(f"文件: {item['file']}")
+            print(f"原因: {item['reason']}")
+            print("-" * 100)
+
+
+if __name__ == "__main__":
+    main()

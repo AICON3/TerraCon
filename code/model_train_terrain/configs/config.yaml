@@ -1,0 +1,373 @@
+##################################################
+# Trigait Terrain Regression Experiment Config
+##################################################
+
+
+project_name: Trigait_Terrain_Regression
+
+
+python_env: py38
+
+
+
+# ==================================================
+# Dataset
+# ==================================================
+
+split_type: subject_split
+
+
+input_length: 200
+
+
+prediction_length: 30
+
+
+imu_channels: 42
+
+
+
+
+# ==================================================
+# Training
+# ==================================================
+
+epochs: 50
+
+
+batch_size: 64
+
+
+learning_rate: 0.001
+
+
+weight_decay: 0.0001
+
+
+seed: 2026
+
+
+
+# ==================================================
+# Loss Weight
+# ==================================================
+
+loss:
+
+  terrain_reg_weight: 1.0
+
+
+
+
+
+# ==================================================
+# Models
+# ==================================================
+
+models:
+
+
+  TCN:
+
+    enabled: true
+
+
+  LSTM:
+
+    enabled: false
+
+
+  Transformer:
+
+    enabled: false
+
+
+  GPT4TS:
+
+    enabled: false
+
+
+  TimesNet:
+
+    enabled: false
+
+
+  PatchTST:
+
+    enabled: false
+
+
+  TimeMixer:
+
+    enabled: false
+
+
+  Mamba:
+
+    enabled: false
+
+
+  Persistence:
+
+    enabled: false
+
+
+
+
+
+# ==================================================
+# Model Parameters
+# ==================================================
+
+TCN:
+
+
+  hidden_channels:
+
+    - 64
+
+    - 128
+
+    - 128
+
+
+  kernel_size: 3
+
+
+  dropout: 0.2
+
+
+
+
+
+LSTM:
+
+
+  hidden_dim: 128
+
+
+  num_layers: 2
+
+
+  dropout: 0.2
+
+
+
+
+
+Transformer:
+
+
+  d_model: 128
+
+
+  n_heads: 4
+
+
+  num_layers: 3
+
+
+  dim_feedforward: 256
+
+
+  dropout: 0.2
+
+
+
+
+
+GPT4TS:
+
+
+  freeze: true
+
+
+
+
+
+TimesNet:
+
+
+  d_model: 64
+
+
+  d_ff: 128
+
+
+  num_layers: 2
+
+
+  dropout: 0.1
+
+
+
+
+
+PatchTST:
+
+
+  patch_len: 16
+
+
+  stride: 8
+
+
+
+
+
+TimeMixer:
+
+
+  d_model: 64
+
+
+
+
+
+Mamba:
+
+
+  d_model: 64
+
+
+
+
+
+# ==================================================
+# Terrain Regression Task
+# ==================================================
+
+tasks:
+
+
+  terrain:
+
+
+    enabled: true
+
+
+    dimension: 6
+
+
+    description:
+
+      Future terrain continuous value prediction
+
+
+
+
+
+# ==================================================
+# Experiment Definition
+# ==================================================
+
+experiment:
+
+
+  input:
+
+
+    description:
+
+      Past 200 frames IMU signals
+
+
+
+
+
+  output:
+
+
+    description:
+
+      Future 30 frames terrain continuous prediction
+
+
+
+
+
+  outputs:
+
+
+    terrain:
+
+
+      shape:
+
+        "[B,30,6]"
+
+
+
+      channels:
+
+
+        - ipsilateral_x
+
+        - ipsilateral_y
+
+        - ipsilateral_z
+
+        - contralateral_x
+
+        - contralateral_y
+
+        - contralateral_z
+
+
+
+
+
+# ==================================================
+# Evaluation
+# ==================================================
+
+evaluation:
+
+
+  save_excel: true
+
+
+  save_json: true
+
+
+  save_plots: true
+
+
+  save_predictions: true
+
+
+
+  metrics:
+
+
+    regression:
+
+
+      - MAE
+
+      - RMSE
+
+      - R2
+
+      - Pearson
+
+      - MAPE
+
+
+
+
+
+# ==================================================
+# Output
+# ==================================================
+
+output:
+
+
+  checkpoints_dir: checkpoints
+
+
+  results_dir: results
+
+
+  evaluation_dir: evaluation_results
