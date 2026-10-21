@@ -1,14 +1,26 @@
 # TerraCon
 
-TerraCon is a dataset-and-code project for studying gait-related signals and terrain recognition from wearable-sensor recordings. This repository is intended to provide project documentation, preprocessing and labeling code, and code for gait-angle and terrain-model experiments.
+TerraCon is a wearable-sensor dataset and code project for research on gait-related signals and terrain recognition. This GitHub repository provides preprocessing utilities, labeling scripts, and model code for gait-angle and terrain-model experiments. The dataset files and large generated artifacts are hosted separately.
 
-> **Release note:** This GitHub package contains the repository structure and documentation. The large raw and processed dataset files are intentionally not included. Download the dataset from the Hugging Face repository linked below.
+> **Release notes:** The dataset license and paper citation have not yet been finalized. Some environment requirements, field-level definitions, and end-to-end commands also remain to be verified. Public visibility does not by itself grant permission to reuse or redistribute data. Please follow the license and terms published by the maintainers when available.
 
 ## Dataset access
 
-**Hugging Face dataset:** [https://huggingface.co/datasets/NJUPTATL/TerraCon](https://huggingface.co/datasets/NJUPTATL/TerraCon)
+- **Hugging Face dataset:** <https://huggingface.co/datasets/NJUPTATL/TerraCon>
+- **GitHub code repository:** <https://github.com/NJUPTATL/TerraCon>
 
-The Hugging Face repository may require access permission until the maintainers finish configuring public visibility. Dataset licensing is currently **not yet specified**. Do not assume that public visibility alone grants permission to use or redistribute the data.
+The Hugging Face repository is the dataset download location. This GitHub repository is intended primarily for source code and documentation; it does **not** include the full raw or processed dataset, generated `.pkl` datasets/splits, or trained model checkpoints. A small number of CSV split lists may be present under the terrain-modeling workflow.
+
+For download instructions and a description of the dataset directory organization, see [Dataset Guide](docs/DATASET.md).
+
+## What is included?
+
+- **Preprocessing:** conversion of device exports, merging/alignment of seven IMU streams, scene-based segmentation, and construction of processed outputs.
+- **Labeling:** gait-related and terrain-related labeling scripts.
+- **Gait-angle modeling:** dataset loading, model definitions, training entry point, split logic, and evaluation scripts.
+- **Terrain modeling:** dataset loading, model definitions, training entry point, split logic, and evaluation scripts.
+
+See [Data Processing Guide](docs/DATA_PROCESSING.md) for the workflow overview and current reproducibility notes.
 
 ## Repository structure
 
@@ -18,69 +30,83 @@ TerraCon/
 ├── docs/
 │   ├── DATASET.md
 │   └── DATA_PROCESSING.md
-├── code/
-│   ├── labeling/
-│   │   ├── label_gait/
-│   │   └── label_terrain/
-│   ├── model_train_angle_gait/
-│   │   ├── configs/
-│   │   ├── data_pkl/
-│   │   ├── datasets/
-│   │   ├── evaluation/
-│   │   ├── evaluation_results/
-│   │   ├── logs/
-│   │   ├── models/
-│   │   ├── splits/
-│   │   └── train/
-│   ├── model_train_terrain/
-│   │   ├── configs/
-│   │   ├── data_pkl/
-│   │   ├── datasets/
-│   │   ├── evaluation/
-│   │   ├── evaluation_results/
-│   │   ├── evaluation_results2/
-│   │   ├── logs/
-│   │   ├── models/
-│   │   ├── splits/
-│   │   └── train/
-│   └── preprocessing/
-│       ├── build_processed.py
-│       ├── convert_device_export.py
-│       ├── merge_7imu.py
-│       └── split_by_scene.py
-├── processed data/
-│   ├── information/
-│   └── sub_001/ ... sub_048/
-│       ├── data/
-│       └── labels/
-└── raw data/
+└── code/
+    ├── preprocessing/
+    │   ├── build_processed.py
+    │   ├── convert_device_export.py
+    │   ├── merge_7imu.py
+    │   └── split_by_scene.py
+    ├── labeling/
+    │   ├── label_gait/
+    │   │   └── label_gait.py
+    │   └── label_terrain/
+    │       ├── labeled_terrain_x.py
+    │       ├── labeled_terrain_xy.py
+    │       ├── labeled_terrain_xyz1.py
+    │       ├── labeled_terrain_xyz2.py
+    │       ├── labeled_terrain_xyz3.py
+    │       ├── labeled_terrain_y.py
+    │       ├── labeled_terrain_z.py
+    │       └── labeled_terrain_z1.py
+    ├── model_train_angle_gait/
+    │   ├── configs/
+    │   ├── data_pkl/             # conversion script; generated PKL files excluded
+    │   ├── datasets/
+    │   ├── evaluation/
+    │   ├── models/
+    │   ├── splits/
+    │   └── train/
+    └── model_train_terrain/
+        ├── configs/
+        ├── data_pkl/             # conversion script; generated PKL files excluded
+        ├── datasets/
+        ├── evaluation/
+        ├── models/
+        ├── splits/               # selected CSV split lists may be included
+        └── train/
 ```
 
-The folder structure is provided as a scaffold. **Source code files are not populated in this package** because the actual source files were not supplied in this conversation. Copy your existing project code into the corresponding `code/` folders before publishing the GitHub repository.
+Generated datasets, trained checkpoints, logs, and large evaluation artifacts are not included as part of this source-code release. Download data from Hugging Face where access and license terms permit.
 
-## Documentation
+## Downloading the dataset
 
-- [Dataset guide](docs/DATASET.md)
-- [Data processing guide](docs/DATA_PROCESSING.md)
+Open the [TerraCon dataset page on Hugging Face](https://huggingface.co/datasets/NJUPTATL/TerraCon) and follow the repository's current access and license information. With a compatible version of `huggingface_hub`, the following command can download a dataset repository:
 
-## Preprocessing and experiments
+```bash
+python -m pip install -U huggingface_hub
+hf download NJUPTATL/TerraCon \
+  --repo-type dataset \
+  --local-dir ./TerraCon-data
+```
 
-The planned preprocessing workflow includes device-export conversion, seven-IMU merging/alignment, scene-based splitting, and processed-data construction. Gait labeling and terrain labeling are organized separately. Training code is separated into gait-angle and terrain-model experiments.
+If the repository requires authentication, sign in using the Hugging Face CLI. Never place access tokens in source code, documentation, shell history, or public issues.
 
-Before treating commands as reproducible, check the scripts' actual command-line arguments, dependency versions, configuration files, and machine-specific paths. The documentation intentionally marks unverified details rather than inventing execution commands or field definitions.
+## Running the code
+
+The code has not yet been verified as a portable, end-to-end pipeline in a clean environment. Before running any script:
+
+1. Download the required dataset files and identify the correct input/output directories.
+2. Inspect the script's argument parser and configuration files.
+3. Replace machine-specific absolute paths with paths valid on your system.
+4. Confirm the required Python packages and versions.
+5. Keep an unchanged backup of raw recordings before preprocessing.
+
+Some scripts may not implement a `--help` option, and the commands or defaults can vary by script. Do not assume that all modules can be run directly without configuration. See [Data Processing Guide](docs/DATA_PROCESSING.md).
 
 ## Citation
 
-**Paper citation: pending.** Add the final paper citation and DOI when available. Do not use a placeholder citation as if it were a published reference.
+**Citation details are pending.** Once the associated paper is published, this section should be updated with its complete citation and persistent identifier (such as a DOI). No publication details are asserted here until confirmed.
 
-## License
+## License and terms of use
 
-**License: pending maintainer confirmation.** Before public release, confirm data ownership, participant consent, institutional requirements, and permitted redistribution. Code and dataset may need separate licenses. Add a root `LICENSE` file for code only after the maintainers choose the appropriate terms, and state the dataset license separately on the Hugging Face page.
+**Dataset license: pending maintainer confirmation.** The maintainers need to confirm data ownership, participant consent, institutional requirements, and redistribution restrictions before publishing definitive terms. Do not assume that the dataset can be reused or redistributed solely because its repository is visible.
+
+The code and dataset may require different licenses. No license for one should be assumed to apply to the other. Add a code license only after the project maintainers have selected and approved it, and publish the dataset terms on the Hugging Face dataset page.
 
 ## Privacy and responsible use
 
-Before publication, audit the raw data, processed files, and metadata spreadsheets for direct identifiers, sensitive information, credentials, and content not approved for public release. Follow the final dataset license, participant-consent terms, and applicable institutional requirements.
+Use the dataset only in accordance with the final license, participant-consent terms, and applicable institutional requirements and laws. Before any release update, review files and metadata for direct identifiers, credentials, local paths, and other information that should not be public.
 
 ## Contact
 
-Maintainer contact: **to be added**.
+Maintainer contact information will be added by the project team.

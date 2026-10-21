@@ -1,34 +1,39 @@
 # TerraCon Dataset Guide
 
-## Dataset access
+This guide summarizes the current high-level organization of TerraCon and how to access the data. It is not a substitute for the dataset paper or a complete field-level data dictionary. Details that have not been verified are explicitly marked as pending.
 
-- **Hugging Face:** [https://huggingface.co/datasets/NJUPTATL/TerraCon](https://huggingface.co/datasets/NJUPTATL/TerraCon)
+## Dataset access and release status
+
+- **Dataset repository:** <https://huggingface.co/datasets/NJUPTATL/TerraCon>
+- **Code repository:** <https://github.com/NJUPTATL/TerraCon>
 - **Dataset license:** pending maintainer confirmation
 - **Paper citation:** pending publication
 
-This GitHub repository does not contain the large raw or processed dataset files. Download them from the Hugging Face dataset repository, subject to its visibility and access settings.
+The Hugging Face repository is the data distribution location. The GitHub repository focuses on code and documentation and does not contain the complete raw or processed dataset or generated `.pkl` files. Check the Hugging Face page for current access instructions and terms. Repository visibility alone does not establish reuse or redistribution rights.
 
-## Top-level organization
+## Dataset organization
+
+The working project tree provided by the maintainers includes the following areas. The exact files present in a published dataset snapshot may differ from the working directory.
 
 | Path | Purpose |
 |---|---|
-| `raw data/` | Placeholder directory. Raw data files are not included in this GitHub package. |
-| `processed data/information/` | Intended location for dataset-level information files, including equipment and subject metadata approved for release. |
-| `processed data/sub_XXX/data/` | Intended location for processed data for each participant. |
-| `processed data/sub_XXX/labels/` | Intended location for labels associated with processed participant data. |
-| `code/preprocessing/` | Preprocessing utilities. |
+| `raw data/` | Original device exports and raw recordings, where included in the dataset release. |
+| `processed data/information/` | Dataset-level information files, including `equipment_information.xlsx`, `subject_information.xlsx`, and the directory currently spelled `scence_pics/`. |
+| `processed data/sub_XXX/data/` | Processed data associated with a participant. |
+| `processed data/sub_XXX/labels/` | Labels associated with a participant's processed data. |
+| `code/preprocessing/` | Utilities for device-export conversion, IMU stream merging/alignment, scene segmentation, and processed-data construction. |
 | `code/labeling/label_gait/` | Gait-labeling code. |
 | `code/labeling/label_terrain/` | Terrain-labeling code. |
-| `code/model_train_angle_gait/` | Gait-angle modeling and evaluation. |
-| `code/model_train_terrain/` | Terrain modeling and evaluation. |
+| `code/model_train_angle_gait/` | Gait-angle modeling, data loading, split logic, training, and evaluation. |
+| `code/model_train_terrain/` | Terrain modeling, data loading, split logic, training, and evaluation. |
 
-The project tree previously provided by the maintainers showed participant directories `sub_001` through `sub_048`. This describes the observed directory naming, not a guarantee that every participant has complete recordings for every task.
+The working processed-data tree previously shown by the maintainers contains participant directories named `sub_001` through `sub_048`. This is a directory observation only; it does not imply that every participant has complete or usable recordings for every task. Final participant counts and sample statistics should be reported only after the dataset snapshot is checked and frozen.
 
-## Seven-IMU naming convention
+## Seven-IMU naming used by preprocessing code
 
-The preprocessing notes identify the following mapping:
+The preprocessing code uses the following sensor-key mapping:
 
-| Sensor key | Body location label |
+| Sensor key | Body-location label in code |
 |---|---|
 | `G` | `pelvis` |
 | `L1` | `L_thigh` |
@@ -38,43 +43,50 @@ The preprocessing notes identify the following mapping:
 | `R2` | `R_shank` |
 | `R3` | `R_foot` |
 
-The final release should include the sensor-placement diagram and confirm device model, coordinate frames, axes, orientation conventions, units, and sampling rate.
+These are the labels used by the current preprocessing source. Device model, sensor placement, coordinate frames, axis conventions, orientation conventions, units, and any changes in the final hardware setup should be confirmed and documented in the dataset paper or a dedicated sensor-placement figure.
 
-## High-level data workflow
+## High-level processing stages
 
-1. `code/preprocessing/convert_device_export.py` — device-export conversion.
-2. `code/preprocessing/merge_7imu.py` — merging/alignment of seven IMU streams.
-3. `code/preprocessing/split_by_scene.py` — extracting time windows for scenes.
-4. `code/preprocessing/build_processed.py` — constructing processed outputs.
-5. `code/labeling/` and `processed data/generate_terrain_cls_all_subject.py` — labeling-related workflows.
+The available scripts indicate this general workflow:
 
-This is a high-level description of the intended workflow. Confirm exact ordering, inputs, outputs, and prerequisites against the released source code before reproducing the pipeline.
+1. **Device-export conversion:** `code/preprocessing/convert_device_export.py` converts WIT binary exports into Excel workbooks.
+2. **Seven-stream merging/alignment:** `code/preprocessing/merge_7imu.py` combines the seven sensor streams. The supplied source summary describes alignment to a 100 Hz time axis; exact matching, interpolation, and missing-data behavior must be verified against the released code.
+3. **Scene segmentation:** `code/preprocessing/split_by_scene.py` extracts time windows associated with selected scenes from stitched sensor workbooks.
+4. **Processed-data construction:** `code/preprocessing/build_processed.py` builds standardized processed outputs.
+5. **Label generation:** scripts under `code/labeling/` create gait- and terrain-related labels.
 
-## Data dictionary status
+For further detail and validation cautions, see [Data Processing Guide](DATA_PROCESSING.md).
 
-**A complete field-level data dictionary remains to be added.** For every released file type, document:
+## Data schema and interpretation
 
-- file type and worksheet names;
-- column names, data types, meanings, and units;
-- timestamp unit, origin, sampling rate, and synchronization behavior;
-- coordinate frame and axis convention for vector measurements;
-- missing-value and invalid-sample conventions;
-- label names, allowed values, and definitions;
-- how data files are matched to label files.
+A definitive field-level data dictionary is still needed. Before relying on the dataset for scientific comparisons, confirm at least:
 
-Do not infer units or semantics from column names alone.
+- column names, units, and data types;
+- timestamp units, reference, and sampling conventions;
+- sensor-axis and orientation definitions;
+- treatment of missing, duplicate, and out-of-order samples;
+- gait and terrain label definitions and allowed values;
+- label time resolution and scene-boundary handling;
+- correspondence between data rows and label rows;
+- participant/session/scene identifiers and their interpretation.
 
-## Metadata and privacy
+Do not infer unspecified units, class names, or preprocessing rules from filenames alone.
 
-The original project tree includes `subject_information.xlsx`, `equipment_information.xlsx`, and a `scence_pics/` directory. Only include files that have been reviewed and approved for public release. Check for names, contact details, direct identifiers, or sensitive information before publishing.
+## Reproducibility and split files
 
-## Release checklist
+The GitHub source repository includes some CSV split-list files under `code/model_train_terrain/splits/`. These are split metadata, not the complete training data. Their meaning, referenced sample identifiers, and compatibility with a particular dataset version should be checked before use. Generated `.pkl` split files and training datasets are excluded from the GitHub source release.
 
-- [ ] Confirm the Hugging Face dataset is publicly downloadable without unintended access barriers.
-- [ ] Select and publish the dataset license.
+For reproducible comparisons, record the dataset version or snapshot, split protocol, preprocessing version, configuration, random seed, dependency versions, and checkpoint-selection/evaluation procedure.
+
+## Items to confirm before the final dataset release
+
+- [ ] Confirm dataset license, reuse terms, and redistribution permissions.
+- [ ] Verify public or authenticated download behavior on Hugging Face.
 - [ ] Add the paper citation when available.
-- [ ] Verify the sensor diagram, coordinate frames, units, and sampling rate.
-- [ ] Document gait and terrain label definitions and class mappings.
-- [ ] Verify data/label alignment and missing-data conventions.
-- [ ] Audit metadata and files for privacy concerns.
-- [ ] Version the dataset and document known limitations.
+- [ ] Confirm participant/session/task statistics from the frozen release snapshot.
+- [ ] Publish sensor-placement and coordinate-frame definitions.
+- [ ] Complete the field-level data dictionary, including units and timestamp conventions.
+- [ ] Document gait/terrain label definitions and boundary rules.
+- [ ] Check CSV split lists for unintended personal information or machine-specific paths.
+- [ ] Audit data and metadata for information that should not be public.
+- [ ] Version the dataset snapshot and document known limitations.
