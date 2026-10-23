@@ -6,8 +6,8 @@ TerraCon is a wearable-sensor dataset and code project for research on gait-rela
 
 ## Dataset access
 
-- **Hugging Face dataset:** <https://huggingface.co/datasets/NJUPTATL/TerraCon>
-- **GitHub code repository:** <https://github.com/NJUPTATL/TerraCon>
+- **Hugging Face dataset:** <https://huggingface.co/datasets/AICON3/TerraCon>
+- **GitHub code repository:** <https://github.com/AICON3/TerraCon>
 
 The Hugging Face repository is the dataset download location. This GitHub repository is intended primarily for source code and documentation; it does **not** include the full raw or processed dataset, generated `.pkl` datasets/splits, or trained model checkpoints. A small number of CSV split lists may be present under the terrain-modeling workflow.
 
@@ -70,11 +70,11 @@ Generated datasets, trained checkpoints, logs, and large evaluation artifacts ar
 
 ## Downloading the dataset
 
-Open the [TerraCon dataset page on Hugging Face](https://huggingface.co/datasets/NJUPTATL/TerraCon) and follow the repository's current access and license information. With a compatible version of `huggingface_hub`, the following command can download a dataset repository:
+Open the [TerraCon dataset page on Hugging Face](https://huggingface.co/datasets/AICON3/TerraCon) and follow the repository's current access and license information. With a compatible version of `huggingface_hub`, the following command can download a dataset repository:
 
 ```bash
 python -m pip install -U huggingface_hub
-hf download NJUPTATL/TerraCon \
+hf download AICON3/TerraCon \
   --repo-type dataset \
   --local-dir ./TerraCon-data
 ```

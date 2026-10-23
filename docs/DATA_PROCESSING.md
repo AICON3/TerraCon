@@ -15,7 +15,7 @@ This guide describes the preprocessing, labeling, and modeling components visibl
 | `code/model_train_angle_gait/` | Gait-angle dataset loading, models, split logic, training, and evaluation. |
 | `code/model_train_terrain/` | Terrain dataset loading, models, split logic, training, and evaluation. |
 
-The dataset files are hosted separately at <https://huggingface.co/datasets/NJUPTATL/TerraCon>. The GitHub repository does not include the full dataset, generated `.pkl` files, or trained checkpoint weights. Obtain the required inputs separately and ensure that your access and use comply with the dataset's published terms.
+The dataset files are hosted separately at <https://huggingface.co/datasets/AICON3/TerraCon>. The GitHub repository does not include the full dataset, generated `.pkl` files, or trained checkpoint weights. Obtain the required inputs separately and ensure that your access and use comply with the dataset's published terms.
 
 ## Before running scripts
 

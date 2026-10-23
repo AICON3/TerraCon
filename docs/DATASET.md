@@ -4,8 +4,8 @@ This guide summarizes the current high-level organization of TerraCon and how to
 
 ## Dataset access and release status
 
-- **Dataset repository:** <https://huggingface.co/datasets/NJUPTATL/TerraCon>
-- **Code repository:** <https://github.com/NJUPTATL/TerraCon>
+- **Dataset repository:** <https://huggingface.co/datasets/AICON3/TerraCon>
+- **Code repository:** <https://github.com/AICON3/TerraCon>
 - **Dataset license:** pending maintainer confirmation
 - **Paper citation:** pending publication
 
