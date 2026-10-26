@@ -54,10 +54,10 @@ class MambaTerrainRegression(nn.Module):
         self.pred_len = pred_len
         self.terrain_dim = terrain_dim
 
-        # 1. 输入时序投影 (42 -> d_model)
+        # 1. Input temporal projection (42 -> d_model)
         self.embedding = nn.Linear(input_dim, d_model)
 
-        # 2. Mamba 骨干网络堆叠
+        # 2. Stacked Mamba backbone
         self.layers = nn.ModuleList([
             MambaBlock(
                 d_model=d_model,
@@ -68,11 +68,11 @@ class MambaTerrainRegression(nn.Module):
             for _ in range(num_layers)
         ])
 
-        # 3. 规范化与正则化
+        # 3. Normalization and regularization
         self.norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-        # 4. 地形回归头 (直接回归到 [pred_len * 6]，严格保证通道排序)
+        # 4. Terrain regression head (directly predicts [pred_len * 6] with channel ordering preserved)
         self.terrain_head = nn.Sequential(
             nn.Linear(d_model, 128),
             nn.GELU(),
@@ -80,7 +80,7 @@ class MambaTerrainRegression(nn.Module):
             nn.Linear(128, pred_len * terrain_dim),
         )
 
-        # 5. 权重初始化
+        # 5. Weight initialization
         self.apply(self._init_weights)
 
     @staticmethod
@@ -103,21 +103,21 @@ class MambaTerrainRegression(nn.Module):
 
         B = x.size(0)
 
-        # 输入嵌入 [B, 200, d_model]
+        # Input embedding [B, 200, d_model]
         h = self.embedding(x)
 
-        # 通过 Mamba 状态空间层
+        # Pass through Mamba state-space layers
         for layer in self.layers:
             h = layer(h)
 
         h = self.norm(h)
 
-        # 提取汇聚了完整 200 帧因果历史信息的末帧隐藏状态 [B, d_model]
+        # Extract the final hidden state representing 200 frames of causal history [B, d_model]
         feature = h[:, -1, :]
         feature = self.dropout(feature)
 
-        # 回归到 [B, pred_len, terrain_dim]
-        # 通道顺序严格保持: [ipsi_x, ipsi_y, ipsi_z, contra_x, contra_y, contra_z]
+        # Regress to [B, pred_len, terrain_dim]
+        # Preserve channel order: [ipsi_x, ipsi_y, ipsi_z, contra_x, contra_y, contra_z]
         terrain = self.terrain_head(feature)
         terrain = terrain.view(B, self.pred_len, self.terrain_dim)
 
@@ -130,7 +130,7 @@ class MambaTerrainRegression(nn.Module):
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # 与 build_model("mamba", cfg) 传参完全兼容
+    # Arguments are compatible with build_model("mamba", cfg)
     model = MambaTerrainRegression(
         input_dim=42,
         pred_len=30,
