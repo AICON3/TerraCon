@@ -992,7 +992,7 @@ def process_one_file(input_file):
 
     single_sequence, same_sequence = get_z234_sequences(direction)
 
-    print(f"[Event detection] {direction} terrain transition events detected: {len(events)} 个")
+    print(f"[Event detection] {direction} terrain transition events detected: {len(events)} events")
     print(f"[Label counts] single-side labels: {len(single_sequence)}")
     print(f"[Label counts] same-side labels: {len(same_sequence)}")
 
