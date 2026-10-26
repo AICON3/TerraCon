@@ -55,22 +55,22 @@ class GPT4TSTerrainRegression(nn.Module):
         self.patch_len = patch_len
         self.stride = stride
 
-        # 1. 计算固定的 Patch 数量: (200 - 16) // 8 + 1 = 24
+        # 1. Compute fixed patch count: (200 - 16) // 8 + 1 = 24
         self.patch_num = (seq_len - patch_len) // stride + 1
 
-        # 2. IMU 多通道实例归一化
+        # 2. IMU multichannel instance normalization
         self.revin = RevIN(num_features=input_dim, affine=True)
 
-        # 3. Patch 局部特征映射 [patch_len * input_dim] -> [d_model]
+        # 3. Patch feature projection [patch_len * input_dim] -> [d_model]
         self.patch_embedding = nn.Linear(input_dim * patch_len, d_model)
 
-        # 4. GPT-2 骨干网络加载
+        # 4. Load the GPT-2 backbone
         config = GPT2Config.from_pretrained("gpt2")
         config.output_attentions = False
         config.output_hidden_states = False
         self.gpt2 = GPT2Model.from_pretrained("gpt2", config=config)
 
-        # 5. 参数微调策略 (仅开启 LayerNorm 和 Position Embedding 更新)
+        # 5. Fine-tune only LayerNorm and positional embeddings
         if freeze:
             for name, param in self.gpt2.named_parameters():
                 if "ln" in name or "wpe" in name:
@@ -78,13 +78,13 @@ class GPT4TSTerrainRegression(nn.Module):
                 else:
                     param.requires_grad = False
 
-        # 6. 时序跨度投影: 在 __init__ 中静态构建，保证被优化器完全收录
-        # 将 Patch 序列长度 (24) 线性映射到目标预测步长 (30)
+        # 6. Construct temporal projection in __init__ so the optimizer registers its parameters
+        # Linearly map 24 patch tokens to 30 prediction steps
         self.temporal_projector = nn.Linear(
             self.patch_num, self.pred_len, bias=False
         )
 
-        # 7. 地形参数回归头 (6维输出)
+        # 7. Terrain parameter regression head (six outputs)
         self.terrain_head = nn.Sequential(
             nn.Linear(d_model, 256),
             nn.GELU(),
@@ -105,10 +105,10 @@ class GPT4TSTerrainRegression(nn.Module):
 
         B, T, D = x.shape
 
-        # A. 实例归一化
+        # A. Instance normalization
         x = self.revin(x, mode="norm")
 
-        # B. 切分 Patch: [B, T, D] -> [B, 24, 16 * 42]
+        # B. Split patches: [B, T, D] -> [B, 24, 16 * 42]
         patches = (
             x.unfold(dimension=1, size=self.patch_len, step=self.stride)
             .permute(0, 1, 3, 2)
@@ -116,38 +116,38 @@ class GPT4TSTerrainRegression(nn.Module):
             .view(B, self.patch_num, self.patch_len * D)
         )
 
-        # C. 投射到 Token Embedding 空间 [B, 24, 768]
+        # C. Project to token embeddings [B, 24, 768]
         embeddings = self.patch_embedding(patches)
 
-        # D. 注入 GPT-2 绝对位置编码
+        # D. Add GPT-2 absolute positional embeddings
         pos_ids = torch.arange(
             0, self.patch_num, dtype=torch.long, device=x.device
         ).unsqueeze(0)
         embeddings = embeddings + self.gpt2.wpe(pos_ids)
 
-        # E. GPT-2 骨干网络注意力交互
+        # E. GPT-2 backbone attention processing
         outputs = self.gpt2(inputs_embeds=embeddings)
         hidden_states = outputs.last_hidden_state  # [B, 24, 768]
 
-        # F. 时序跨度对齐 [B, 24, 768] -> [B, 768, 24] -> [B, 768, 30] -> [B, 30, 768]
+        # F. Temporal alignment [B, 24, 768] -> [B, 768, 24] -> [B, 768, 30] -> [B, 30, 768]
         h = hidden_states.transpose(1, 2)
         h = self.temporal_projector(h).transpose(1, 2)
 
-        # G. 回归地形目标参数 [B, 30, 6]
+        # G. Regress target terrain parameters [B, 30, 6]
         terrain = self.terrain_head(h)
 
         return {"terrain": terrain}
 
 
 if __name__ == "__main__":
-    # 自检：实例化、参数注册检查以及张量传递
+    # Self-test: instantiation, parameter registration, and tensor propagation
     model = GPT4TSTerrainRegression(input_dim=42, pred_len=30, terrain_dim=6)
 
-    # 验证优化器可收集参数
+    # Verify that the optimizer can collect parameters
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     print(f"可训练参数张量数量: {len(trainable_params)}")
 
-    # 验证 forward
+    # Verify forward pass
     dummy_x = torch.randn(2, 200, 42)
     output = model(dummy_x)
 
