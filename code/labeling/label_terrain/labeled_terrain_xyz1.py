@@ -6,25 +6,25 @@ import pandas as pd
 
 
 # ============================================================
-# 0. 配置区
+# 0. Configuration
 # ============================================================
 
-# 只需要改这里
+# Only this section needs to be changed
 SUBJECT_ID = "sub_040"
 
-# 项目根目录
+# Project root directory
 PROJECT_ROOT = r"E:\data"
 
-# 当前要处理的地形方向
+# Terrain direction to process
 TERRAIN_NAME = "xyz1"
 
-# 自动生成输入文件夹
+# Automatically generate the input directory
 INPUT_DIR = os.path.join(
     PROJECT_ROOT,
     f"{SUBJECT_ID}_label",
 )
 
-# 自动生成 fwd / bwd 输入文件
+# Automatically generate fwd/bwd input file paths
 INPUT_FILES = [
     os.path.join(
         INPUT_DIR,
@@ -38,13 +38,13 @@ INPUT_FILES = [
 
 PRINT_EVENTS = True
 
-# 最后从最后一个 r_label == 3 开始强制归 0
+# Force labels to 0 from the final r_label == 3 event onward
 FORCE_ZERO_FROM_LAST_RIGHT_LABEL3 = True
 
 
 
 # ============================================================
-# 1. XYZ1 标签序列
+# 1. XYZ1 label sequence
 # ============================================================
 
 XYZ1_LABELS = {
@@ -76,7 +76,7 @@ XYZ1_LABELS = {
 
 
 # ============================================================
-# 2. Excel 自动读取
+# 2. Automatic Excel loading
 # ============================================================
 
 def read_excel_auto_sheet(input_file):
@@ -137,7 +137,7 @@ def read_excel_auto_sheet(input_file):
 
 
 # ============================================================
-# 3. 文件名方向判断
+# 3. Determine direction from the filename
 # ============================================================
 
 def detect_xyz1_direction_from_filename(input_file):
@@ -159,7 +159,7 @@ def detect_xyz1_direction_from_filename(input_file):
 
 
 # ============================================================
-# 4. 输出路径
+# 4. Output paths
 # ============================================================
 
 def extract_subject_id(input_file):
@@ -265,7 +265,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
 
 # ============================================================
-# 5. 事件检测
+# 5. Event detection
 # ============================================================
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
@@ -414,7 +414,7 @@ def collect_xyz1_terrain_events(df):
 
 
 # ============================================================
-# 6. 获取标签序列
+# 6. Retrieve label sequences
 # ============================================================
 
 def get_xyz1_sequences(direction):
@@ -437,7 +437,7 @@ def get_xyz1_sequences(direction):
 
 
 # ============================================================
-# 7. 数量检查
+# 7. Validate counts
 # ============================================================
 
 def check_event_label_count_match(events, sequences, direction):
@@ -474,7 +474,7 @@ def check_event_label_count_match(events, sequences, direction):
 
 
 # ============================================================
-# 8. 贴标签
+# 8. Assign labels
 # ============================================================
 
 def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_label=0):
@@ -564,7 +564,7 @@ def force_zero_from_last_right_label3(df, output_cols):
 
 
 # ============================================================
-# 9. 打印映射和统计
+# 9. Print mappings and statistics
 # ============================================================
 
 def print_event_mapping(events, sequence, title):
@@ -637,7 +637,7 @@ def print_terrain_statistics(df):
 
 
 # ============================================================
-# 10. 处理单个文件
+# 10. Process a single file
 # ============================================================
 
 def process_one_file(input_file):
@@ -737,7 +737,7 @@ def process_one_file(input_file):
 
 
 # ============================================================
-# 11. 主程序
+# 11. Main entry point
 # ============================================================
 
 def main():
