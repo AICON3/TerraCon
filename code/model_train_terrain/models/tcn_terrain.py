@@ -135,7 +135,7 @@ class TCNTerrainRegression(nn.Module):
         self.apply(weights_init)
 
     def forward(self, x):
-        """输入: x: [B, 200, 42]"""
+        """Input: x: [B, 200, 42]"""
         # 1. Clean invalid values
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
 
@@ -164,6 +164,6 @@ if __name__ == "__main__":
     model = TCNTerrainRegression()
     dummy_x = torch.randn(8, 200, 42)
     out = model(dummy_x)
-    print("TCN 验证成功:")
+    print("TCN validation passed:")
     print("terrain shape:", out["terrain"].shape)  # torch.Size([8, 30, 6])
     assert out["terrain"].shape == (8, 30, 6)
