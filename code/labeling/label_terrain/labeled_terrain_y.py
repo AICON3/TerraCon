@@ -5,20 +5,20 @@ import pandas as pd
 
 
 # ============================================================
-# 0. 配置区
+# 0. Configuration
 # ============================================================
 
-# 以后只需要修改这里
-# 例如：
+# Only this section needs to be edited
+# Example:
 # SUB_ID = "sub_006"
 # SUB_ID = "sub_031"
 # SUB_ID = "sub_101"
 SUB_ID = "sub_041"
 
-# 数据根目录
+# Data root directory
 BASE_DIR = r"E:\data"
 
-# 当前被试文件夹
+# Current participant directory
 SUB_DIR = os.path.join(BASE_DIR, f"{SUB_ID}_label")
 
 INPUT_FILES = [
@@ -26,16 +26,16 @@ INPUT_FILES = [
     os.path.join(SUB_DIR, f"{SUB_ID}_y_bwd_aligned_labeled.xlsx"),
 ]
 
-# 是否打印详细事件映射
-# False = 不打印事件过程，只打印数量结果和最终结果
+# Whether to print detailed event mappings
+# False: print only counts and final results, not the event detection trace
 PRINT_EVENTS = False
 
-# 最后从最后一个 r_label == 3 开始强制归 0
+# Force labels to 0 from the final r_label == 3 event onward
 FORCE_ZERO_FROM_LAST_RIGHT_LABEL3 = True
 
 
 # ============================================================
-# 1. Y_fwd 地形标签
+# 1. Terrain labels for Y_fwd
 # ============================================================
 
 Y_FWD_SINGLE_TERRAIN_SEQUENCE = [
@@ -124,7 +124,7 @@ Y_FWD_SAME_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 2. Y_bwd 地形标签
+# 2. Terrain labels for Y_bwd
 # ============================================================
 
 Y_BWD_SINGLE_TERRAIN_SEQUENCE = [
@@ -213,28 +213,28 @@ Y_BWD_SAME_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 3. Excel 自动读取
+# 3. Automatic Excel loading
 # ============================================================
 
 def read_excel_auto_sheet(input_file):
     """
-    自动读取 Excel 文件。
+    Automatically load the Excel workbook.
 
-    优先读取 data/Data/DATA 工作表。
-    如果没有，则读取第一个工作表。
+    Prefer the data/Data/DATA worksheet.
+    Otherwise read the first worksheet.
 
-    安静版：
-        不打印 Excel 工作表检测过程。
+    Quiet mode:
+        Do not print the Excel worksheet inspection process.
     """
     try:
         xls = pd.ExcelFile(input_file)
 
     except Exception as e:
         raise RuntimeError(
-            "读取 Excel 文件失败。\n"
-            f"文件: {input_file}\n"
-            f"错误类型: {type(e).__name__}\n"
-            f"错误信息: {e}"
+            "Failed to read the Excel workbook.\n"
+            f"File: {input_file}\n"
+            f"Error type: {type(e).__name__}\n"
+            f"Error message: {e}"
         )
 
     preferred_sheets = ["data", "Data", "DATA"]
@@ -255,12 +255,12 @@ def read_excel_auto_sheet(input_file):
 
 
 # ============================================================
-# 4. 判断 y_fwd / y_bwd
+# 4. Determine y_fwd / y_bwd
 # ============================================================
 
 def detect_y_direction_from_filename(input_file):
     """
-    从文件名判断 y_fwd / y_bwd。
+    Determine from filename: y_fwd / y_bwd。
     """
     basename = os.path.basename(input_file).lower()
 
@@ -271,18 +271,18 @@ def detect_y_direction_from_filename(input_file):
         return "y_bwd"
 
     raise ValueError(
-        "无法从文件名判断方向，请确保文件名包含 y_fwd 或 y_bwd：\n"
+        "Cannot determine direction from filename; ensure it contains y_fwd or y_bwd：\n"
         f"{input_file}"
     )
 
 
 # ============================================================
-# 5. 自动生成输出路径
+# 5. Generate the output path
 # ============================================================
 
 def extract_subject_id(input_file):
     """
-    从路径或文件名中提取 sub_xxx。
+    Extract sub_xxx from the path or filename.
     """
     text = input_file.replace("\\", "/")
 
@@ -299,13 +299,13 @@ def extract_subject_id(input_file):
 
 def build_output_file(input_file):
     """
-    生成输出文件夹和输出文件路径。
+    Generate output directory and output filename.
 
-    输出文件夹：
+    Output directory:
         sub_xxx_labeled_terrain
 
-    输出文件：
-        原文件名 + _terrain.xlsx
+    Output file:
+        Original filename + _terrain.xlsx
     """
     subject_id = extract_subject_id(input_file)
 
@@ -334,15 +334,15 @@ def build_output_file(input_file):
 
 
 # ============================================================
-# 6. 安全保存 Excel
+# 6. Save the Excel workbook safely
 # ============================================================
 
 def save_excel_safely(df, output_file, sheet_name="data"):
     """
-    安全保存 Excel。
+    Save the Excel workbook safely.
 
-    如果目标文件被 Excel/WPS 打开导致无法覆盖，
-    自动另存为 _v2, _v3, ...
+    If the target cannot be overwritten because it is open in Excel/WPS,
+    automatically save as _v2, _v3, etc.
     """
     out_dir = os.path.dirname(output_file)
 
@@ -379,26 +379,26 @@ def save_excel_safely(df, output_file, sheet_name="data"):
                 continue
 
         raise PermissionError(
-            "尝试多个备用文件名后仍无法保存，请关闭 Excel/WPS 后重试。"
+            "Could not save using alternative names; close Excel/WPS and retry."
         )
 
 
 # ============================================================
-# 7. 通用事件检测函数
+# 7. General event-detection functions
 # ============================================================
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
     """
-    检测指定 label_col 中某个 label_value 的起始点。
+    Detect the first sample of a label_value run in label_col.
 
-    rising edge 条件：
-        当前行 label == label_value
-        且上一行 label != label_value
+    Rising-edge condition:
+        Current row label == label_value
+        and previous row label != label_value
 
-    连续一段 label==3 只算一个事件。
+    Each contiguous run of label == 3 counts as one event.
     """
     if label_col not in df.columns:
-        raise KeyError(f"缺少列: {label_col}")
+        raise KeyError(f"Missing column: {label_col}")
 
     label = pd.to_numeric(df[label_col], errors="coerce").fillna(0).to_numpy()
 
@@ -435,35 +435,35 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 
 # ============================================================
-# 8. y_fwd / y_bwd 共用事件逻辑
+# 8. Shared event logic for y_fwd / y_bwd
 # ============================================================
 
 def collect_y_terrain_events_like_x_fwd(df):
     """
-    Y_fwd 和 Y_bwd 都使用 x_fwd 的贴标逻辑：
+    Y_fwd and Y_bwd use the same labeling logic as x_fwd:
 
-    第 1 个事件：
-        第一个 l_label == 3
+    Event 1:
+        First l_label == 3
 
-    第 2 个事件：
-        第二个 l_label == 3
+    Event 2:
+        Second l_label == 3
 
-    第 3 个事件：
-        第二个 l_label == 3 之后，第一个 r_label == 3
+    Event 3:
+        First r_label == 3 after the second l_label == 3
 
-    第 4 个事件及以后：
-        第三个事件之后，l_label == 3 或 r_label == 3
+    Event 4 and later:
+        After the third event: l_label == 3 or r_label == 3
 
-    返回：
+    Return:
         events
         l3_events
         r3_events
     """
     if "l_label" not in df.columns:
-        raise KeyError("缺少列: l_label")
+        raise KeyError("Missing column: l_label")
 
     if "r_label" not in df.columns:
-        raise KeyError("缺少列: r_label")
+        raise KeyError("Missing column: r_label")
 
     events = []
 
@@ -483,12 +483,12 @@ def collect_y_terrain_events_like_x_fwd(df):
 
     if len(l3_events) < 2:
         raise RuntimeError(
-            "l_label == 3 的起始事件少于 2 个，无法执行 y 的贴标规则。"
+            "l_label == 3 has fewer than two start events; cannot apply y labeling rules."
         )
 
     if len(r3_events) < 1:
         raise RuntimeError(
-            "r_label == 3 的起始事件少于 1 个，无法执行 y 的贴标规则。"
+            "r_label == 3 has fewer than one start event; cannot apply y labeling rules."
         )
 
     first_event = dict(l3_events[0])
@@ -508,8 +508,8 @@ def collect_y_terrain_events_like_x_fwd(df):
 
     if len(r3_after_second) == 0:
         raise RuntimeError(
-            "已经找到第二个 l_label == 3，"
-            "但其后没有找到 r_label == 3，无法执行第 3 次贴标。"
+            "The second l_label == 3 was found, "
+            "but no subsequent r_label == 3 was found; cannot assign the third label."
         )
 
     third_event = dict(r3_after_second[0])
@@ -544,12 +544,12 @@ def collect_y_terrain_events_like_x_fwd(df):
 
 
 # ============================================================
-# 9. 根据 y_fwd / y_bwd 获取标签序列
+# 9. Get label sequences for y_fwd / y_bwd
 # ============================================================
 
 def get_y_sequences(direction):
     """
-    根据方向返回单侧和同侧地形标签序列。
+    Return single-side and same-side terrain sequences for the direction.
     """
     if direction == "y_fwd":
         return Y_FWD_SINGLE_TERRAIN_SEQUENCE, Y_FWD_SAME_TERRAIN_SEQUENCE
@@ -557,16 +557,16 @@ def get_y_sequences(direction):
     if direction == "y_bwd":
         return Y_BWD_SINGLE_TERRAIN_SEQUENCE, Y_BWD_SAME_TERRAIN_SEQUENCE
 
-    raise ValueError(f"未知方向: {direction}")
+    raise ValueError(f"Unknown direction: {direction}")
 
 
 # ============================================================
-# 10. 数量检查与数量结果打印
+# 10. Check counts and print results
 # ============================================================
 
 def check_event_label_count_match(events, sequence):
     """
-    检查事件数量和标签数量是否一致。
+    Check that event and label counts agree.
     """
     return len(events) == len(sequence)
 
@@ -580,13 +580,13 @@ def print_count_summary(
     same_sequence,
 ):
     """
-    打印简洁数量结果：
+    Print a concise count summary:
 
-    原始标签数量：
-        你给的标签序列数量。
+    Original label count:
+        The number of provided label sequences.
 
-    事件标签数量：
-        根据 l_label/r_label == 3 实际检测到的贴标事件数量。
+    Event label count:
+        The number of labeling events detected using l_label/r_label == 3.
     """
     single_count = len(single_sequence)
     same_count = len(same_sequence)
@@ -596,49 +596,49 @@ def print_count_summary(
     same_ok = same_count == event_count
 
     print("=" * 100)
-    print(f"[数量结果] {direction}")
+    print(f"[Count results] {direction}")
 
     print(
-        f"原始标签数量/你给的标签数量: "
-        f"单侧={single_count}, "
-        f"同侧={same_count}"
+        f"Original / provided label count: "
+        f"single-side={single_count}, "
+        f"same-side={same_count}"
     )
 
     print(
-        f"事件标签数量/实际检测到的贴标事件数量: "
+        f"Detected labeling-event count: "
         f"{event_count}"
     )
 
     print(
-        f"原始 label==3 起始事件数量: "
-        f"l_label==3事件={len(l3_events)}, "
-        f"r_label==3事件={len(r3_events)}"
+        f"Original label==3 start-event count: "
+        f"l_label==3 events={len(l3_events)}, "
+        f"r_label==3 events={len(r3_events)}"
     )
 
     if single_ok and same_ok:
-        print("数量检查结果: 通过")
+        print("Count validation: passed")
     else:
-        print("数量检查结果: 不通过")
+        print("Count validation: failed")
 
         if not single_ok:
             print(
-                f"  单侧不一致: "
-                f"原始标签数量={single_count}, "
-                f"事件标签数量={event_count}"
+                f"  Single-side mismatch: "
+                f"Original label count={single_count}, "
+                f"Labeled event count={event_count}"
             )
 
         if not same_ok:
             print(
-                f"  同侧不一致: "
-                f"原始标签数量={same_count}, "
-                f"事件标签数量={event_count}"
+                f"  Same-side mismatch: "
+                f"Original label count={same_count}, "
+                f"Labeled event count={event_count}"
             )
 
     print("=" * 100)
 
 
 # ============================================================
-# 11. 根据事件序列贴地形标签
+# 11. Assign terrain labels from event sequences
 # ============================================================
 
 def apply_terrain_sequence(
@@ -649,20 +649,20 @@ def apply_terrain_sequence(
     initial_label=0,
 ):
     """
-    根据事件序列贴地形标签。
+    Assign terrain labels from the event sequence.
 
-    贴标逻辑：
-        第一个事件之前：
+    Labeling logic:
+        Before the first event:
             initial_label
 
-        第 k 个事件 到 第 k+1 个事件之前：
+        From event k to just before event k+1:
             terrain_sequence[k]
 
-        最后一个事件之后：
+        After the final event:
             terrain_sequence[-1]
 
-    严格模式：
-        事件数量必须等于标签数量。
+    Strict mode:
+        Event count must equal label count.
     """
     n = len(df)
 
@@ -678,8 +678,8 @@ def apply_terrain_sequence(
 
     if len(events) != len(terrain_sequence):
         raise ValueError(
-            f"{output_col}: 事件数量 {len(events)} "
-            f"和地形序列长度 {len(terrain_sequence)} 不一致。"
+            f"{output_col}: Event count {len(events)} "
+            f"and terrain-sequence length {len(terrain_sequence)} do not match."
         )
 
     first_idx = events[0]["idx"]
@@ -708,16 +708,16 @@ def apply_terrain_sequence(
 
 
 # ============================================================
-# 12. 最后一个 r_label == 3 后强制归 0
+# 12. Force labels to 0 after the final r_label == 3 event
 # ============================================================
 
 def force_zero_from_last_right_label3(df, output_cols):
     """
-    从最后一个 r_label == 3 的起始事件开始，
-    将指定地形标签列强制置为 0。
+    Starting from the final r_label == 3 start event,
+    Force the specified terrain-label column to 0.
     """
     if "r_label" not in df.columns:
-        raise KeyError("缺少列: r_label")
+        raise KeyError("Missing column: r_label")
 
     r3_events = detect_label_value_rising_edges(
         df=df,
@@ -739,13 +739,13 @@ def force_zero_from_last_right_label3(df, output_cols):
 
 
 # ============================================================
-# 13. 可选：打印事件和标签对应关系
+# 13. Optional event-to-label mapping output
 # ============================================================
 
 def print_event_mapping(events, sequence, title):
     """
-    可选打印事件映射。
-    默认 PRINT_EVENTS=False，不会调用。
+    Optionally print event mappings.
+    Not called by default because PRINT_EVENTS=False.
     """
     print("=" * 130)
     print(title)
@@ -777,13 +777,13 @@ def print_event_mapping(events, sequence, title):
         )
 
     print("-" * 130)
-    print(f"事件数量: {len(events)}")
-    print(f"标签数量: {len(sequence)}")
+    print(f"Event count: {len(events)}")
+    print(f"Label count: {len(sequence)}")
     print("=" * 130)
 
 
 # ============================================================
-# 14. 处理单个文件
+# 14. Process a single file
 # ============================================================
 
 def process_one_file(input_file):
@@ -800,19 +800,19 @@ def process_one_file(input_file):
 
     if missing:
         raise KeyError(
-            "当前表格缺少必要列：\n"
+            "Required columns are missing:\n"
             + "\n".join(missing)
-            + "\n\n请确认输入文件是已经贴好步态标签的表格。"
+            + "\n\nPlease verify that the input workbook already contains gait labels."
         )
 
     events, l3_events, r3_events = collect_y_terrain_events_like_x_fwd(df)
 
     if len(events) == 0:
-        raise RuntimeError("没有检测到任何可用于贴地形标签的事件。")
+        raise RuntimeError("No events available for assigning terrain labels were detected.")
 
     single_sequence, same_sequence = get_y_sequences(direction)
 
-    # 打印数量结果：原始标签数量 + 事件标签数量
+    # Print counts of original labels and event labels
     print_count_summary(
         direction=direction,
         events=events,
@@ -822,7 +822,7 @@ def process_one_file(input_file):
         same_sequence=same_sequence,
     )
 
-    # 严格检查：标签数量必须和事件数量一致
+    # Strict check: label count must match event count
     single_ok = check_event_label_count_match(
         events=events,
         sequence=single_sequence,
@@ -835,26 +835,26 @@ def process_one_file(input_file):
 
     if not single_ok or not same_ok:
         raise RuntimeError(
-            f"{direction} 标签数量和事件数量不一致，不生成新文件。\n"
-            f"事件标签数量: {len(events)}\n"
-            f"单侧原始标签数量: {len(single_sequence)}\n"
-            f"同侧原始标签数量: {len(same_sequence)}"
+            f"{direction} Label count and event count differ，do not generate an output file。\n"
+            f"Event count: {len(events)}\n"
+            f"Original single-side label count: {len(single_sequence)}\n"
+            f"Original same-side label count: {len(same_sequence)}"
         )
 
     if PRINT_EVENTS:
         print_event_mapping(
             events,
             single_sequence,
-            title=f"[{direction} 单侧地形标签映射]",
+            title=f"[{direction} single-side terrain label mapping]",
         )
 
         print_event_mapping(
             events,
             same_sequence,
-            title=f"[{direction} 同侧地形标签映射]",
+            title=f"[{direction} same-side terrain label mapping]",
         )
 
-    # 贴单侧地形标签
+    # Assign single-side terrain labels
     df = apply_terrain_sequence(
         df=df,
         events=events,
@@ -863,7 +863,7 @@ def process_one_file(input_file):
         initial_label=0,
     )
 
-    # 贴同侧地形标签
+    # Assign same-side terrain labels
     df = apply_terrain_sequence(
         df=df,
         events=events,
@@ -872,7 +872,7 @@ def process_one_file(input_file):
         initial_label=0,
     )
 
-    # 最后一个 r_label == 3 起始事件后强制归 0
+    # Force labels to 0 from the final r_label == 3 start event
     if FORCE_ZERO_FROM_LAST_RIGHT_LABEL3:
         df = force_zero_from_last_right_label3(
             df=df,
@@ -904,15 +904,15 @@ def process_one_file(input_file):
 
 
 # ============================================================
-# 15. 主程序
+# 15. Main entry point
 # ============================================================
 
 def main():
     print("=" * 100)
-    print("[Y方向地形标签批处理开始]")
-    print(f"被试: {SUB_ID}")
-    print(f"输入文件夹: {SUB_DIR}")
-    print(f"待处理文件数量: {len(INPUT_FILES)}")
+    print("[Y terrain batch labeling started]")
+    print(f"Subject: {SUB_ID}")
+    print(f"Input directory: {SUB_DIR}")
+    print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
     results = []
@@ -923,12 +923,12 @@ def main():
             failed_files.append(
                 {
                     "file": input_file,
-                    "reason": "文件不存在",
+                    "reason": "File not found",
                 }
             )
 
             print("=" * 100)
-            print("[跳过] 文件不存在")
+            print("[Skipped] File not found")
             print(input_file)
             print("=" * 100)
 
@@ -939,12 +939,12 @@ def main():
             results.append(result)
 
             print(
-                f"[完成] {result['direction']} | "
-                f"行数: {result['row_count']} | "
-                f"原始标签数量: 单侧={result['single_label_count']}, "
-                f"同侧={result['same_label_count']} | "
-                f"事件标签数量={result['event_count']} | "
-                f"输出: {result['output_file']}"
+                f"[Completed] {result['direction']} | "
+                f"Rows: {result['row_count']} | "
+                f"Original label count: single-side={result['single_label_count']}, "
+                f"same-side={result['same_label_count']} | "
+                f"Labeled event count={result['event_count']} | "
+                f"Output: {result['output_file']}"
             )
 
         except Exception as e:
@@ -956,39 +956,39 @@ def main():
             )
 
             print("=" * 100)
-            print("[失败] 当前文件处理失败，已跳过")
-            print(f"文件: {input_file}")
-            print(f"错误类型: {type(e).__name__}")
-            print(f"错误信息: {e}")
+            print("[Failed] Processing failed for this file; skipping")
+            print(f"File: {input_file}")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Error message: {e}")
             print("=" * 100)
 
             continue
 
     print("\n")
     print("#" * 100)
-    print("[全部处理完成]")
-    print(f"成功数量: {len(results)}")
-    print(f"失败数量: {len(failed_files)}")
+    print("[All processing complete]")
+    print(f"Success count: {len(results)}")
+    print(f"Failure count: {len(failed_files)}")
     print("#" * 100)
 
     if results:
-        print("\n[成功生成文件]")
+        print("\n[Successfully generated files]")
         for r in results:
             print(
                 f"{r['direction']} | "
-                f"原始标签数量: 单侧={r['single_label_count']}, "
-                f"同侧={r['same_label_count']} | "
-                f"事件标签数量={r['event_count']} | "
-                f"l_label==3事件={r['l3_event_count']} | "
-                f"r_label==3事件={r['r3_event_count']} | "
-                f"输出={r['output_file']}"
+                f"Original label count: single-side={r['single_label_count']}, "
+                f"same-side={r['same_label_count']} | "
+                f"Labeled event count={r['event_count']} | "
+                f"l_label==3 events={r['l3_event_count']} | "
+                f"r_label==3 events={r['r3_event_count']} | "
+                f"Output={r['output_file']}"
             )
 
     if failed_files:
-        print("\n[失败文件]")
+        print("\n[Failed files]")
         for item in failed_files:
-            print(f"文件: {item['file']}")
-            print(f"原因: {item['reason']}")
+            print(f"File: {item['file']}")
+            print(f"Reason: {item['reason']}")
             print("-" * 100)
 
 

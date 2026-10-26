@@ -1,7 +1,5 @@
-# Raw data directory
+# Raw Data Directory
 
-Large raw data files are intentionally not stored in this GitHub repository.
+This directory represents the layout for original TerraCon device exports and recordings. The complete raw data files are distributed through the dataset repository and are not stored in this GitHub source repository.
 
-Download the dataset from Hugging Face: https://huggingface.co/datasets/NJUPTATL/TerraCon
-
-Check the dataset license and access conditions before use.
+Dataset: <https://huggingface.co/datasets/AICON3/TerraCon>

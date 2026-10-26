@@ -1,0 +1,49 @@
+name: TerraCon release validation
+
+on:
+  push:
+    branches:
+      - docs/review-cleanup-2026-10
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python syntax without importing optional ML dependencies
+        run: python -m compileall -q code tools
+      - name: Verify dataset information files and workbook metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          from zipfile import ZipFile
+
+          info = Path("processed data/information")
+          workbooks = ("equipment_information.xlsx", "subject_information.xlsx")
+          pics = sorted((info / "scence_pics").glob("*.jpg"))
+          assert len(pics) == 16, f"Expected 16 scene images; found {len(pics)}"
+          core_fields = {
+              "{http://purl.org/dc/elements/1.1/}creator",
+              "{http://schemas.openxmlformats.org/package/2006/metadata/core-properties}lastModifiedBy",
+              "{http://purl.org/dc/terms/}created",
+              "{http://purl.org/dc/terms/}modified",
+          }
+          for filename in workbooks:
+              path = info / filename
+              assert path.exists(), path
+              with ZipFile(path) as workbook:
+                  assert workbook.testzip() is None, f"Corrupt workbook: {filename}"
+                  core = ET.fromstring(workbook.read("docProps/core.xml"))
+                  leaked_fields = [element.tag for element in core if element.tag in core_fields]
+                  assert not leaked_fields, f"Personal metadata remains in {filename}"
+              print(f"Verified {filename}")
+          print(f"Verified {len(pics)} scene images")
+          PY

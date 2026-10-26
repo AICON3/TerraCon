@@ -90,12 +90,12 @@ class ChannelIndependentProcessor(nn.Module):
     """
     Channel Independent PatchTST
 
-    输入:
+    Input:
         [B,T,C]
 
-    每个channel独立PatchTST编码
+    Independent PatchTST encoding for each channel
 
-    输出:
+    Output:
         [B,C,d_model]
 
     """
@@ -188,7 +188,7 @@ class ChannelIndependentProcessor(nn.Module):
 
 
 
-        # 每个传感器独立处理
+        # Process each sensor independently
 
         x = x.permute(
             0,
@@ -230,7 +230,7 @@ class ChannelIndependentProcessor(nn.Module):
         )
 
 
-        # patch平均
+        # Average over patches
 
         x = x.mean(
             dim=2

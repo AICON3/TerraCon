@@ -17,7 +17,7 @@ from scipy.signal import find_peaks, savgol_filter
 
 
 # ============================================================
-# 0. 配置
+# 0. Configuration
 # ============================================================
 
 SUBJECT_ID = "sub_002"
@@ -35,8 +35,8 @@ OUTPUT_LABEL_FILE = (
     f"{SUBJECT_ID}_{SCENARIO}_aligned_labeled.xlsx"
 )
 
-# 当前版本不再单独保存 alignment_events.xlsx
-# 只保存最终对齐并带左右总标签的主 Excel。
+# The current version no longer saves alignment_events.xlsx separately
+# Save only the final aligned Excel workbook with left and right aggregate labels.
 
 MIN_PEAK_DIST = 80
 MIN_PEAK_PROM = 5
@@ -65,7 +65,7 @@ FIG_STEP2_SIZE = (18, 10)
 
 
 # ============================================================
-# 1. 共享 segment 状态
+# 1. Shared segment states
 # ============================================================
 
 class SegmentState:
@@ -78,11 +78,11 @@ class SegmentState:
     shank:
         internal_auto_shift = 0
         internal_manual_shift = 0
-        final shift 只来自 STEP1 的 side_base_shift
+        The final shift comes only from the STEP1 side_base_shift
 
     thigh / foot:
-        在 shank 的 side_base_shift 基础上，
-        再叠加本侧内部自动/人工 shift
+        On top of the shank side_base_shift,
+        add automatic or manual within-side shifts
     """
 
     def __init__(
@@ -135,7 +135,7 @@ class SegmentState:
 
 
 # ============================================================
-# 2. 共享事件线
+# 2. Shared event lines
 # ============================================================
 
 class SharedEvent:
@@ -153,16 +153,16 @@ class SharedEvent:
         self.event_id = int(event_id)
         self.orig_time = float(orig_time)
 
-        # auto   = 程序初始自动检测出来的事件
-        # manual = 交互过程中人工新增的事件
+        # auto = events detected automatically at initialization
+        # manual = events added manually during interaction
         self.source = str(source)
 
         # visual_only_fixed=True：
-        # 只做视觉参考，不参与标签/对齐；
-        # 曲线前后移动时这条参考线不跟着移动。
+        # Visual reference only; excluded from labeling and alignment.
+        # This reference line remains fixed when its curve is shifted.
         self.visual_only_fixed = bool(visual_only_fixed)
 
-        # 只要人工拖动过这条事件线，就记为 True
+        # Mark True if this event line has ever been dragged manually
         self.edited = False
 
         self.artists = []
@@ -186,8 +186,8 @@ class SharedEvent:
         segment_states,
         side_base_shift,
     ):
-        # 所有事件线都跟随所属 IMU 曲线的 shift 一起移动。
-        # 是否参与最终标签由 build_total_label 单独决定。
+        # All event lines move together with the shift of their associated IMU curves.
+        # build_total_label determines which event lines contribute to the final labels.
         state = segment_states[
             self.owner_seg
         ]
@@ -256,7 +256,7 @@ class SharedEvent:
 
 
 # ============================================================
-# 3. 峰值
+# 3. Peaks and extrema
 # ============================================================
 
 def find_event_peaks(
@@ -291,24 +291,24 @@ def detect_side_features(
     df,
 ):
     """
-    图上保留原来的主要事件线：
+    Preserve the original main event lines in the plots:
 
-        thigh Event2  = thigh 局部最小
-        shank Event2  = shank 局部最大
-        shank Event3  = shank 局部最小
-        foot  Event1  = foot 局部最小
-        foot  Event3  = foot 局部最大
+        thigh Event2 = local thigh minimum
+        shank Event2 = local shank maximum
+        shank Event3 = local shank minimum
+        foot Event1 = local foot minimum
+        foot Event3 = local foot maximum
 
-    但最终左右统一标签只读取：
+    But the final left/right aggregate labels use only:
         foot Event1
         shank Event2
         shank Event3
 
-    thigh Event2 和 foot Event3：
-        只作为视觉参考线，
-        不参与标签，
-        不参与自动对齐，
-        不决定任何 shift。
+    Thigh Event2 and foot Event3:
+        are visual references only,
+        do not contribute to labels,
+        are not used for automatic alignment,
+        and do not determine shifts.
     """
 
     thigh = df[
@@ -323,7 +323,7 @@ def detect_side_features(
         f"{prefix}foot_angle_y_deg"
     ].to_numpy(dtype=float)
 
-    # thigh min -> Event2（视觉参考）
+    # thigh minimum -> Event2 (visual reference only)
     thigh_min = find_event_peaks(
         thigh,
         MIN_PEAK_DIST,
@@ -331,7 +331,7 @@ def detect_side_features(
         "min",
     )
 
-    # shank max -> Event2（最终标签）
+    # shank maximum -> Event2 (used for final labels)
     shank_max = find_event_peaks(
         shank,
         MIN_PEAK_DIST,
@@ -339,7 +339,7 @@ def detect_side_features(
         "max",
     )
 
-    # shank min -> Event3（最终标签）
+    # shank minimum -> Event3 (used for final labels)
     shank_min = find_event_peaks(
         shank,
         MIN_PEAK_DIST,
@@ -347,7 +347,7 @@ def detect_side_features(
         "min",
     )
 
-    # foot max -> Event3（视觉参考）
+    # foot maximum -> Event3 (visual reference only)
     foot_max = find_event_peaks(
         foot,
         MIN_PEAK_DIST,
@@ -355,7 +355,7 @@ def detect_side_features(
         "max",
     )
 
-    # foot min -> Event1（最终标签）
+    # foot minimum -> Event1 (used for final labels)
     foot_min = find_event_peaks(
         foot,
         MIN_PEAK_DIST,
@@ -393,7 +393,7 @@ def detect_side_features(
 
 
 # ============================================================
-# 4. 同侧自动初始对齐
+# 4. Initial automatic alignment within one side
 # ============================================================
 
 def nearest_diffs(
@@ -506,23 +506,23 @@ def initialize_internal_shifts(
     segment_states,
 ):
     """
-    不再使用其他 IMU 的事件位置进行自动内部对齐。
+    Do not automatically align within a leg using event positions from other IMUs.
 
-    原则：
+    Principle:
         STEP1:
-            pelvis 固定
-            用户拖左/右 shank，确定左右侧相对 pelvis 的位置
+            Keep the pelvis fixed
+            Users drag the left/right shank to set each side relative to the pelvis
 
         STEP2:
-            shank 固定
-            用户直接拖 thigh / foot 曲线去对齐 shank
+            Keep the shank fixed
+            Users drag the thigh/foot curves to align with the shank
 
-    因此：
+    Therefore:
         thigh internal auto shift = 0
         shank internal auto shift = 0
         foot  internal auto shift = 0
 
-    最终移动多少，只取决于用户实际拖动曲线得到的 shift。
+    The final offset depends only on shifts produced by actual user drags.
     """
 
     thigh_seg = f"{prefix}thigh"
@@ -563,7 +563,7 @@ def initialize_internal_shifts(
 
 
 # ============================================================
-# 5. pelvis 辅助峰谷
+# 5. Auxiliary pelvis peaks and valleys
 # ============================================================
 
 def smooth_signal(x):
@@ -654,7 +654,7 @@ def pelvis_extrema(y):
 
 
 # ============================================================
-# 6. 保存用 shift / 标签工具
+# 6. Shift and labeling utilities for saving
 # ============================================================
 
 def sample_dt(t):
@@ -672,7 +672,7 @@ def sample_dt(t):
 
     if len(d) == 0:
         raise ValueError(
-            "无法从 time_s 计算采样周期"
+            "Cannot determine the sampling interval from time_s"
         )
 
     return float(
@@ -698,12 +698,12 @@ def shift_sensor_columns(
     shift_samples,
 ):
     """
-    prefix 示例：
+    Example prefix:
         l_foot
         l_shank
         pelvis
 
-    该 IMU 的所有数据列一起移动。
+    All data columns for this IMU move together.
     """
 
     cols = [
@@ -716,7 +716,7 @@ def shift_sensor_columns(
 
     if not cols:
         raise KeyError(
-            f"未找到 {prefix}_* 数据列"
+            f"No {prefix}_* data columns were found"
         )
 
     if shift_samples != 0:
@@ -733,7 +733,7 @@ def common_trim_range(
     shifts,
 ):
     """
-    只删除由于 shift 新产生的首尾空缺。
+    Remove only leading and trailing gaps introduced by the shift.
     """
 
     shifts = list(shifts)
@@ -763,7 +763,7 @@ def common_trim_range(
 
     if trim_start >= trim_end:
         raise ValueError(
-            "位移过大，没有共同有效数据区间"
+            "The shift leaves no common valid data interval"
         )
 
     return (
@@ -781,54 +781,54 @@ def build_total_label(
 ):
     """
     ==========================================================
-    左/右侧最终统一标签 —— 连续贴标版
+    Final left/right aggregate labels — continuous assignment
     ==========================================================
 
-    最终规则严格为：
+    Final rules:
 
-        数据开始 -> 第一个 shank Event3      = 0
+        Data start -> first shank Event3 = 0
 
         Event3 -> Event1                    = 3
         Event1 -> Event2                    = 1
-        Event2 -> 下一个 Event3              = 2
+        Event2 -> next Event3 = 2
 
-        然后继续：
+        Then repeat:
         Event3 -> Event1                    = 3
         Event1 -> Event2                    = 1
         Event2 -> Event3                    = 2
         ...
 
-        最后一个 Event3 -> 最后一个 Event1   = 3
-        最后一个 Event1 -> 数据结束           = 0
+        Final Event3 -> final Event1 = 3
+        Final Event1 -> data end = 0
 
 
-    Event 来源固定：
+    Event sources are fixed:
         Event1 = foot
         Event2 = shank
         Event3 = shank
 
 
-    【重要修正】
-    旧版的问题：
-        如果某个 E3-to-E3 周期没有严格找到 E1 或 E2，
-        代码会 continue。
-        由于 labels 初始值是 0，
-        因此会在标签中间产生一整段 0。
+    [Important correction]
+    Issue in the previous version:
+        If an E3-to-E3 cycle was missing a valid E1 or E2,
+        the code would continue to the next cycle.
+        Because labels were initialized to 0,
+        this left an entire interval of zeros in the middle.
 
-    本版改成：
-        标签按“实际存在的事件线”连续传播。
+    Current version:
+        Propagate labels continuously using existing event lines.
 
-        遇到 Event3 -> 从该时刻开始贴 3
-        遇到 Event1 -> 从该时刻开始贴 1
-        遇到 Event2 -> 从该时刻开始贴 2
-        遇到下一个 Event3 -> 再改成 3
+        On Event3 -> assign 3 from that time
+        On Event1 -> assign 1 from that time
+        On Event2 -> assign 2 from that time
+        On the next Event3 -> assign 3 again
 
-    因此：
-        第一个 Event3 到最后一个 Event1 之间绝不允许出现 0。
+    Therefore:
+        No zeros may occur between the first Event3 and final Event1.
 
-    同时：
-        最后一个 Event3 到最后一个 Event1 强制贴 3，
-        最后一个 Event1 及以后强制贴 0。
+    Also:
+        Force label 3 between the final Event3 and final Event1,
+        and force label 0 from the final Event1 onward.
     """
 
     t = np.asarray(
@@ -864,7 +864,7 @@ def build_total_label(
         )
 
     # --------------------------------------------------------
-    # 1. 只取最终总标签真正需要的事件
+    # 1. Retain only events required for the final aggregate labels
     # --------------------------------------------------------
 
     e1_items = sorted(
@@ -917,7 +917,7 @@ def build_total_label(
     used_events = set()
 
     # --------------------------------------------------------
-    # 2. 必须至少有 E3 和 E1
+    # 2. Require at least E3 and E1
     # --------------------------------------------------------
 
     if len(e3_items) == 0:
@@ -948,12 +948,12 @@ def build_total_label(
             used_events,
         )
 
-    # 第一个有效边界：第一个 shank E3
+    # First valid boundary: the first shank E3
     first_e3_time, first_e3_ev = (
         e3_items[0]
     )
 
-    # “最后一个 Event1”必须是在第一个 E3 后面的 Event1
+    # The final Event1 must occur after the first E3
     e1_after_first_e3 = [
         item
         for item in e1_items
@@ -980,9 +980,9 @@ def build_total_label(
     )
 
     # --------------------------------------------------------
-    # 3. 找最后一个 Event1 前面的最后一个 shank Event3
+    # 3. Find the final shank Event3 preceding the final Event1
     #
-    #    这段必须严格：
+    #    This segment must satisfy the strict condition:
     #       terminal E3 -> last E1 = 3
     # --------------------------------------------------------
 
@@ -1016,14 +1016,14 @@ def build_total_label(
     )
 
     # --------------------------------------------------------
-    # 4. 构造“连续状态事件”
+    # 4. Construct continuous-state events
     #
-    #    first E3 到 terminal E3 之间：
+    #    Between the first E3 and terminal E3:
     #        E3 -> state 3
     #        E1 -> state 1
     #        E2 -> state 2
     #
-    #    不再因为缺某个事件而把一整个周期留成 0。
+    #    Do not leave an entire cycle labeled 0 just because an event is missing.
     # --------------------------------------------------------
 
     state_events = []
@@ -1076,9 +1076,9 @@ def build_total_label(
                 )
             )
 
-    # 同一时刻若出现不同事件，
-    # 按正常相位顺序 E3 -> E1 -> E2 排序。
-    # 因为后一个状态会覆盖该时刻之后的标签。
+    # If different events occur at the same time,
+    # sort them in normal phase order: E3 -> E1 -> E2.
+    # A later state overrides the labels after that instant.
     event_priority = {
         3: 0,
         1: 1,
@@ -1095,8 +1095,8 @@ def build_total_label(
         ),
     )
 
-    # 理论上第一个一定应该是 first E3。
-    # 为保险起见显式加入。
+    # In principle, the first event should be the first E3.
+    # Include it explicitly as a precaution.
     if (
         not state_events
         or not np.isclose(
@@ -1118,14 +1118,14 @@ def build_total_label(
         )
 
     # --------------------------------------------------------
-    # 5. 从第一个 E3 开始连续贴标签
+    # 5. Assign continuous labels starting at the first E3
     #
-    #    每一条事件线只负责把“当前状态”改成：
+    #    Each event line only updates the current state to:
     #        E3 => 3
     #        E1 => 1
     #        E2 => 2
     #
-    #    一直持续到下一条有效事件。
+    #    This state persists until the next valid event.
     # --------------------------------------------------------
 
     cycle_index = 0
@@ -1156,8 +1156,8 @@ def build_total_label(
                 terminal_e3_time
             )
 
-        # 如果同一时刻多条线，
-        # 前面的零长度区间自动跳过。
+        # If several event lines share a timestamp,
+        # skip the preceding zero-length intervals automatically.
         if next_time > event_time:
             labels[
                 (t >= event_time)
@@ -1182,7 +1182,7 @@ def build_total_label(
         })
 
         # ----------------------------------------------------
-        # QC 只报警，不再把标签清零
+        # QC reports warnings only; it no longer resets labels to 0
         # ----------------------------------------------------
         if previous_event_id is not None:
             expected_next = {
@@ -1229,9 +1229,9 @@ def build_total_label(
         )
 
     # --------------------------------------------------------
-    # 6. 最终不完整周期：
+    # 6. Final incomplete cycle:
     #
-    #    最后一个 shank E3 -> 最后一个 foot E1 = 3
+    #    Final shank E3 to final foot E1 = 3
     # --------------------------------------------------------
 
     labels[
@@ -1287,7 +1287,7 @@ def build_total_label(
     })
 
     # --------------------------------------------------------
-    # 7. 两端强制为 0
+    # 7. Force labels at both ends to 0
     # --------------------------------------------------------
 
     labels[
@@ -1299,8 +1299,8 @@ def build_total_label(
     ] = 0
 
     # --------------------------------------------------------
-    # 8. 关键安全检查：
-    #    first E3 到 last E1 之间绝不允许再出现 0
+    # 8. Critical consistency check:
+    #    No 0 label is permitted between the first E3 and final E1
     # --------------------------------------------------------
 
     active_mask = (
@@ -1326,11 +1326,11 @@ def build_total_label(
         ]
 
         raise RuntimeError(
-            f"[{side}] 标签逻辑错误："
-            f"第一个Event3({first_e3_time:.3f}s)"
-            f"到最后一个Event1({last_e1_time:.3f}s)"
-            f"之间仍有 {internal_zero_count} 个0。"
-            f"第一个异常时间={zero_times[0]:.3f}s"
+            f"[{side}] Label consistency error: "
+            f"first Event3 ({first_e3_time:.3f}s) "
+            f"to final Event1 ({last_e1_time:.3f}s) "
+            f"contains {internal_zero_count} zero labels. "
+            f"First abnormal time={zero_times[0]:.3f}s"
         )
 
     qc_rows.append({
@@ -1356,7 +1356,7 @@ def build_total_label(
 
 
 # ============================================================
-# 7. 创建 UI
+# 7. Build the UI
 # ============================================================
 
 def build_ui(
@@ -1382,12 +1382,12 @@ def build_ui(
 
     if missing:
         raise KeyError(
-            "缺少列：\n"
+            "Missing columns:\n"
             + "\n".join(missing)
         )
 
     # --------------------------------------------------------
-    # 数据 + shared states
+    # Data and shared states
     # --------------------------------------------------------
 
     left_cfg = detect_side_features(
@@ -1426,13 +1426,13 @@ def build_ui(
             color=cfg["color"],
         )
 
-    # STEP1 的 shank -> pelvis 左右整体基准 shift
+    # STEP1: overall left/right shank-to-pelvis baseline shifts
     side_base_shift = {
         "left": 0.0,
         "right": 0.0,
     }
 
-    # 单腿内部自动初始 shift
+    # Automatic initial shifts within each leg
     auto_qc = []
 
     auto_qc.extend(
@@ -1454,7 +1454,7 @@ def build_ui(
     )
 
     # --------------------------------------------------------
-    # STEP1：pelvis固定，左右 shank 移动
+    # STEP1: pelvis fixed, left/right shanks movable
     # --------------------------------------------------------
 
     fig1, ax1 = plt.subplots(
@@ -1466,7 +1466,7 @@ def build_ui(
 
     try:
         fig1.canvas.manager.set_window_title(
-            "STEP1 - Pelvis固定，左右Shank对齐"
+            "STEP1 - Align left and right shanks to the fixed pelvis"
         )
     except Exception:
         pass
@@ -1517,10 +1517,10 @@ def build_ui(
     )
 
     titles1 = [
-        "LEFT SHANK — 可左右拖动",
-        "RIGHT SHANK — 可左右拖动",
-        "PELVIS X — 固定不动",
-        "PELVIS Y — 固定不动",
+        "LEFT SHANK — drag horizontally",
+        "RIGHT SHANK — drag horizontally",
+        "PELVIS X — fixed",
+        "PELVIS Y — fixed",
     ]
 
     for a, title in zip(
@@ -1538,7 +1538,7 @@ def build_ui(
             "Angle (deg)"
         )
 
-        # STEP1（含 pelvis）每个子图都显示时间坐标和刻度
+        # In STEP1, show time axes and ticks on every subplot, including the pelvis
         a.set_xlabel(
             "Time (s)"
         )
@@ -1605,14 +1605,14 @@ def build_ui(
 
     fig1.suptitle(
         f"{SUBJECT_ID} | {SCENARIO}\n"
-        "STEP1：Pelvis固定；拖 L/R shank 做左右整体对齐。"
-        "点击shank事件线=上下4图同步阴影；[S]保存",
+        "STEP1: Keep pelvis fixed; drag L/R shank to align each side."
+        "Click a shank event to shade four plots together; [S] to save",
         fontsize=10,
         fontweight="bold",
     )
 
     # --------------------------------------------------------
-    # STEP1 事件选中阴影：L shank / R shank / Pelvis X / Pelvis Y
+    # STEP1 selection shading: L shank / R shank / pelvis X / pelvis Y
     # --------------------------------------------------------
     STEP1_SHADOW_HALF_WIDTH_S = 0.03
 
@@ -1630,7 +1630,7 @@ def build_ui(
         step1_shadow_patches.append(patch)
 
     def _update_span_patch(patch, x0, x1):
-        # 兼容不同 matplotlib 版本中 axvspan 返回的 Rectangle / Polygon
+        # Support Rectangle / Polygon objects returned by axvspan across matplotlib versions
         if hasattr(patch, "set_x") and hasattr(patch, "set_width"):
             patch.set_x(x0)
             patch.set_width(x1 - x0)
@@ -1656,7 +1656,7 @@ def build_ui(
             patch.set_visible(True)
 
     # --------------------------------------------------------
-    # STEP2：单腿内部
+    # STEP2: alignment within each leg
     # --------------------------------------------------------
 
     fig2, ax2 = plt.subplots(
@@ -1668,7 +1668,7 @@ def build_ui(
 
     try:
         fig2.canvas.manager.set_window_title(
-            "STEP2 - 单腿内部对齐"
+            "STEP2 - Align segments within each leg"
         )
     except Exception:
         pass
@@ -1719,7 +1719,7 @@ def build_ui(
         fontweight="bold",
     )
 
-    # STEP2 只保留最下面一排横坐标
+    # In STEP2, show x-axis labels only on the bottom row
     ax2[2, 0].set_xlabel(
         "Time (s)"
     )
@@ -1730,16 +1730,16 @@ def build_ui(
 
     fig2.suptitle(
         f"{SUBJECT_ID} | {SCENARIO}\n"
-        "STEP2：Shank固定；拖 thigh/foot 做单腿内部对齐。"
-        "点击任意事件线=同侧上下3图同步阴影；[S]保存",
+        "STEP2: Keep shank fixed; drag thigh/foot to align within each leg."
+        "Click any event to shade three same-side plots; [S] to save",
         fontsize=10,
         fontweight="bold",
     )
 
     # --------------------------------------------------------
-    # STEP2 事件选中阴影：
-    # 左侧事件 -> 左 thigh/shank/foot 三图同时显示
-    # 右侧事件 -> 右 thigh/shank/foot 三图同时显示
+    # STEP2 event selection shading:
+    # Left-side events -> show on all three left thigh/shank/foot plots
+    # Right-side events -> show on all three right thigh/shank/foot plots
     # --------------------------------------------------------
     STEP2_SHADOW_HALF_WIDTH_S = 0.03
 
@@ -1787,8 +1787,8 @@ def build_ui(
             )
             patch.set_visible(True)
 
-    # 记录当前最后点击/选中的事件。
-    # 曲线继续移动时，阴影会跟着这条事件线更新。
+    # Track the most recently clicked or selected event.
+    # Update the shading with the event line when its curve moves.
     selected_event_state = {
         "event": None,
     }
@@ -1807,7 +1807,7 @@ def build_ui(
             x,
         )
 
-        # shank 事件在线路1也有对应显示，因此同时更新 pelvis 窗口的4图阴影
+        # Shank events also appear in STEP1, so update shading on all four pelvis-window plots
         if ev.owner_seg.endswith("shank"):
             show_step1_shadow(x)
 
@@ -1828,8 +1828,8 @@ def build_ui(
             else "right"
         )
 
-        # 所有原始事件线都随各自曲线一起移动。
-        # thigh E2 / foot E3 仍只做参考，不参与最终总标签。
+        # All original event lines move with their respective curves.
+        # Thigh E2 and foot E3 remain visual references and do not affect final aggregate labels.
         ev = SharedEvent(
             owner_seg=seg_name,
             side=side,
@@ -1839,12 +1839,12 @@ def build_ui(
             visual_only_fixed=False,
         )
 
-        # STEP2 总是显示
+        # Always show STEP2
         ev.add_artist(
             seg_axis[seg_name]
         )
 
-        # shank 在 STEP1 也同步显示
+        # Also display the shank synchronously in STEP1
         if seg_name == "l_shank":
             ev.add_artist(
                 ax1[0]
@@ -1940,7 +1940,7 @@ def build_ui(
     )
 
     # ========================================================
-    # STEP1 鼠标：shank动，pelvis不动
+    # STEP1 mouse interaction: shank moves, pelvis stays fixed
     # ========================================================
 
     step1_state = {
@@ -1979,15 +1979,15 @@ def build_ui(
         if role is None:
             return
 
-        # pelvis 固定
+        # Pelvis stays fixed
         if role == "pelvis":
             if evt.button == 1:
                 print(
-                    "[STEP1] Pelvis 是固定参考，不移动。"
+                    "[STEP1] The pelvis is a fixed reference and cannot be moved."
                 )
             return
 
-        # shank event 删除
+        # Delete a shank event
         if evt.button == 3:
             for ev in list(events):
                 if (
@@ -2015,7 +2015,7 @@ def build_ui(
         if evt.button != 1:
             return
 
-        # 优先拖事件线
+        # Prioritize dragging event lines
         for ev in events:
             if (
                 not ev.removed
@@ -2044,7 +2044,7 @@ def build_ui(
                 fig2.canvas.draw_idle()
                 return
 
-        # 否则拖整侧 shank 基准
+        # Otherwise drag the whole-side shank baseline
         step1_state[
             "drag_side"
         ] = role
@@ -2060,7 +2060,7 @@ def build_ui(
         ]
 
         print(
-            f"[STEP1] 开始移动 {role} shank；Pelvis固定"
+            f"[STEP1] Moving {role} shank; pelvis remains fixed"
         )
 
     def on_step1_motion(evt):
@@ -2120,8 +2120,8 @@ def build_ui(
             + delta
         )
 
-        # 整侧基础 shift 同步：
-        # shank + thigh + foot 全部跟随
+        # Synchronize the baseline shift for the entire side:
+        # Shank, thigh, and foot all follow
         redraw_side(side)
 
         selected_ev = selected_event_state[
@@ -2166,7 +2166,7 @@ def build_ui(
         ] = None
 
     # ========================================================
-    # STEP2 鼠标：shank固定，thigh/foot动
+    # STEP2 mouse interaction: shank fixed, thigh/foot movable
     # ========================================================
 
     step2_state = {
@@ -2178,9 +2178,9 @@ def build_ui(
     }
 
     # ========================================================
-    # STEP2 最终裁剪范围（两条灰线）
-    # 左右灰线在所有子图同步显示/移动
-    # 保存时删除灰线外数据
+    # STEP2 final crop bounds (two gray lines)
+    # Display and move both gray boundary lines across all subplots
+    # Remove data outside the gray boundaries on save
     # ========================================================
     crop_state = {
         "left": float(t[0]),
@@ -2241,7 +2241,7 @@ def build_ui(
         for seg, a in seg_axis.items()
     }
 
-    # 只有最终总标签真正需要的事件才允许人工添加
+    # Only events required for final aggregate labels can be added manually
     allowed_event_ids = {
         "thigh": set(),
         "shank": {2, 3},
@@ -2272,7 +2272,7 @@ def build_ui(
             )
 
             print(
-                f"[STEP2] Event {evt.key} 添加模式"
+                f"[STEP2] Add Event {evt.key} mode"
             )
 
         elif evt.key in (
@@ -2284,7 +2284,7 @@ def build_ui(
             ] = "shift"
 
             print(
-                "[STEP2] 曲线平移模式"
+                "[STEP2] Curve-shift mode"
             )
 
         elif evt.key in (
@@ -2356,8 +2356,8 @@ def build_ui(
         if evt.button != 1:
             return
 
-        # 优先检查已有事件：
-        # 所有事件线都可点击，点击后同侧上下3图显示阴影。
+        # First check existing events:
+        # All event lines are clickable; selection shades three plots on the same side.
         for ev in events:
             if (
                 not ev.removed
@@ -2384,7 +2384,7 @@ def build_ui(
                 fig2.canvas.draw_idle()
                 return
 
-        # 添加事件
+        # Add an event
         if step2_state[
             "mode"
         ] in (
@@ -2406,9 +2406,9 @@ def build_ui(
                 ]
             ):
                 print(
-                    f"[STEP2] {seg_name} 不使用 Event {event_id}。"
-                    "最终标签只允许：foot=Event1；shank=Event2/Event3；"
-                    "thigh不参与事件标签。"
+                    f"[STEP2] {seg_name} does not use Event {event_id}."
+                    "Final labels accept foot Event1 and shank Event2/Event3 only; "
+                    "thigh events do not contribute to labels."
                 )
                 return
 
@@ -2431,7 +2431,7 @@ def build_ui(
                 evt.inaxes
             )
 
-            # 新增 shank 事件时，STEP1同步
+            # Synchronize STEP1 when adding a shank event
             if seg_name == "l_shank":
                 ev.add_artist(
                     ax1[0]
@@ -2469,8 +2469,8 @@ def build_ui(
                 "shank"
             ):
                 print(
-                    f"[STEP2] {seg_name} 已在 STEP1 与 pelvis 对齐，"
-                    "此处固定；请移动 thigh/foot。"
+                    f"[STEP2] {seg_name} was aligned with pelvis in STEP1 and is "
+                    "fixed here; move thigh/foot instead."
                 )
                 return
 
@@ -2487,7 +2487,7 @@ def build_ui(
             ] = state.internal_manual_shift
 
             print(
-                f"[STEP2] 开始移动 {seg_name}，shank固定"
+                f"[STEP2] Moving {seg_name}; shank remains fixed"
             )
 
     def on_step2_motion(evt):
@@ -2590,7 +2590,7 @@ def build_ui(
     def on_step2_release(evt):
         if crop_state["drag"] is not None:
             print(
-                f"[裁剪范围] {crop_state['left']:.3f}s ~ {crop_state['right']:.3f}s"
+                f"[Crop range] {crop_state['left']:.3f}s ~ {crop_state['right']:.3f}s"
             )
             crop_state["drag"] = None
             return
@@ -2626,7 +2626,7 @@ def build_ui(
             "active_seg"
         ] = None
 
-    # STEP1 也可以 S 保存
+    # S also saves in STEP1
     def on_step1_key(evt):
         if evt.key in (
             "s",
@@ -2701,7 +2701,7 @@ def build_ui(
 
 
 # ============================================================
-# 8. 保存
+# 8. Save
 # ============================================================
 
 def save_result(
@@ -2722,7 +2722,7 @@ def save_result(
     dt = sample_dt(t)
 
     # --------------------------------------------------------
-    # 1) 计算每个 segment 的最终整数样本位移
+    # 1) Compute the final integer-sample shift for each segment
     # --------------------------------------------------------
 
     requested_shift_s = {}
@@ -2755,7 +2755,7 @@ def save_result(
             seg_name
         ] = samples * dt
 
-    # pelvis 固定
+    # Pelvis stays fixed
     applied_shift_samples[
         "pelvis"
     ] = 0
@@ -2765,7 +2765,7 @@ def save_result(
     ] = 0.0
 
     # --------------------------------------------------------
-    # 2) 真正移动数据列
+    # 2) Apply shifts to data columns
     # --------------------------------------------------------
 
     out = df.copy()
@@ -2804,7 +2804,7 @@ def save_result(
             "NumColumnsMoved": len(cols),
         })
 
-    # pelvis不动，只验证列存在
+    # Do not shift the pelvis; only verify required columns exist
     pelvis_cols = shift_sensor_columns(
         out,
         "pelvis",
@@ -2820,7 +2820,7 @@ def save_result(
     })
 
     # --------------------------------------------------------
-    # 3) 删除移动后首尾空缺
+    # 3) Remove leading and trailing gaps after shifting
     # --------------------------------------------------------
 
     all_shifts = [
@@ -2837,7 +2837,7 @@ def save_result(
         )
     ]
 
-    # pelvis=0，也纳入共同参考
+    # Include the pelvis as a common reference with zero shift
     all_shifts.append(0)
 
     trim_start, trim_end = (
@@ -2847,7 +2847,7 @@ def save_result(
         )
     )
 
-    # 人工灰线裁剪：在自动去空缺基础上进一步限制范围
+    # Manual gray-line crop further restricts the range after automatic gap removal
     if crop_state is not None:
         manual_start = int(
             np.searchsorted(
@@ -2890,7 +2890,7 @@ def save_result(
     )
 
     # --------------------------------------------------------
-    # 4) 只生成左右两个总标签
+    # 4) Generate only left and right aggregate labels
     # --------------------------------------------------------
 
     l_label, l_unified, l_qc, l_used_events = (
@@ -2918,7 +2918,7 @@ def save_result(
         | set(r_used_events)
     )
 
-    # 如果原表已经有同名标签，先删掉，确保最后两列就是它们
+    # Remove existing same-named labels to ensure these labels occupy the final two columns
     for col in (
         "l_label",
         "r_label",
@@ -2928,13 +2928,13 @@ def save_result(
                 columns=[col]
             )
 
-    # 最后两列
+    # Final two columns
     out["l_label"] = l_label
     out["r_label"] = r_label
 
     # --------------------------------------------------------
-    # 标签来源安全检查：
-    # l_label / r_label 绝不能被 thigh 或 foot Event3 等影响
+    # Validate label event sources:
+    # l_label / r_label must not be affected by thigh events or foot Event3
     # --------------------------------------------------------
     for ev in used_for_total_label:
         legal = (
@@ -2951,15 +2951,15 @@ def save_result(
 
         if not legal:
             raise RuntimeError(
-                "发现非法标签事件来源："
+                "Invalid label event source detected: "
                 f"{ev.owner_seg}, Event{ev.event_id}。"
-                "最终标签只允许 foot Event1 "
-                "和 shank Event2/Event3。"
+                "Final labels only allow foot Event1 "
+                "and shank Event2/Event3."
             )
 
     # --------------------------------------------------------
-    # 5) 主 Excel：
-    #    原表列（数值已对齐） + l_label + r_label
+    # 5) Primary Excel workbook:
+    #    Aligned original columns plus l_label and r_label
     # --------------------------------------------------------
 
     out.to_excel(
@@ -2969,7 +2969,7 @@ def save_result(
     )
 
     # --------------------------------------------------------
-    # 6) 不再单独输出事件 metadata 文件
+    # 6) Do not export a separate event metadata file
     # --------------------------------------------------------
 
     shift_rows = []
@@ -2997,8 +2997,8 @@ def save_result(
         })
 
     # --------------------------------------------------------
-    # 所有当前仍存在的事件线必须完整保存。
-    # AllEvents 是“交互结果的完整审计表”，不再等同于“用于标签的事件”。
+    # Preserve records for every event line that still exists.
+    # AllEvents is a complete interaction audit, not merely events used for labeling.
     # --------------------------------------------------------
     event_rows = []
 
@@ -3008,7 +3008,7 @@ def save_result(
         if not ev.removed
     ]
 
-    # 为了 Excel 更容易检查，按 side / aligned time 排序
+    # Sort by side and aligned time for easier Excel inspection
     visible_events = sorted(
         visible_events,
         key=lambda ev: (
@@ -3031,7 +3031,7 @@ def save_result(
             ]
         )
 
-        # 裁剪后是否仍落在最终主数据时间范围内
+        # Whether the event remains in the final data time range after cropping
         if len(t_kept):
             inside_kept_range = bool(
                 t_kept[0]
@@ -3050,32 +3050,32 @@ def save_result(
             # auto / manual
             "Source": ev.source,
 
-            # 是否被人工拖过
+            # Whether the event was dragged manually
             "Edited": bool(ev.edited),
 
-            # 当前版本所有事件线都随所属曲线一起移动
+            # All event lines move with their associated curves in the current version
             "VisualOnlyFixed": False,
 
-            # 用户在该传感器原时间轴上的事件位置
+            # Event location on the sensor's original time axis
             "OrigTime_s": ev.orig_time,
 
-            # 最终真正应用到数据列的整数样本位移
+            # Final integer-sample shift actually applied to the data columns
             "AppliedShift_s": applied_shift_s[
                 ev.owner_seg
             ],
 
-            # 与最终对齐数据对应的事件时间
+            # Event time corresponding to the final aligned data
             "AlignedTime_s": aligned_time,
 
-            # 是否仍落在裁剪后的最终数据区间
+            # Whether the event remains within the final cropped data interval
             "InsideKeptRange": inside_kept_range,
 
-            # 是否真正被最终 l_label/r_label 选用
+            # Whether the event is used by the final l_label / r_label
             "UsedForTotalLabel": (
                 ev in used_for_total_label
             ),
 
-            # 明确说明该事件在最终左右总标签中的角色
+            # Explicitly describe the event's role in the final left/right aggregate labels
             "LabelRole": (
                 "Event1_from_foot"
                 if (
@@ -3100,10 +3100,10 @@ def save_result(
             ),
         })
 
-    # 保存前强制校验：图上存在多少事件，AllEvents 就必须有多少行。
+    # Before saving, require AllEvents rows to match the number of displayed events.
     if len(event_rows) != len(visible_events):
         raise RuntimeError(
-            "事件保存数量校验失败："
+            "Saved event-count validation failed: "
             f"visible={len(visible_events)}, "
             f"saved={len(event_rows)}"
         )
@@ -3132,51 +3132,51 @@ def save_result(
     ])
 
     # --------------------------------------------------------
-    # 当前版本不再保存事件/对齐元数据 Excel。
-    # 事件线、人工调整和 shift 仍然参与本次对齐与标签生成，
-    # 但不会另存为 alignment_events.xlsx。
+    # The current version no longer saves a separate event/alignment metadata workbook.
+    # Event lines, manual adjustments, and shifts still affect alignment and label generation,
+    # but are not saved separately to alignment_events.xlsx.
     # --------------------------------------------------------
 
     print("=" * 80)
     print(
-        f"[保存完成] {OUTPUT_LABEL_FILE}"
+        f"[Saved] {OUTPUT_LABEL_FILE}"
     )
     print(
-        "[说明] 只保存主 Excel，不再生成 alignment_events.xlsx"
+        "[Info] Only the main Excel workbook is saved; alignment_events.xlsx is not generated"
     )
     print("")
     print(
-        f"原始 {rows_before} 行 -> "
-        f"最终 {len(out)} 行"
+        f"Original {rows_before} rows -> "
+        f"final {len(out)} rows"
     )
     print(
-        f"删除开头 {trim_start} 行；"
-        f"删除结尾 {rows_before - trim_end} 行"
+        f"Removed {trim_start} starting rows; "
+        f"removed {rows_before - trim_end} ending rows"
     )
     print("")
     print(
-        f"[事件审计] 当前图上有效事件线 = {len(visible_events)} 条；"
-        f"AllEvents 已保存 = {len(event_rows)} 条"
+        f"[Event audit] Visible event lines = {len(visible_events)}; "
+        f"AllEvents records saved = {len(event_rows)}"
     )
     print(
-        f"[人工事件] Source=manual 共 "
-        f"{sum(1 for ev in visible_events if ev.source == 'manual')} 条"
+        f"[Manual events] Source=manual count: "
+        f"{sum(1 for ev in visible_events if ev.source == 'manual')}"
     )
     print(
-        f"[人工修改] Edited=True 共 "
-        f"{sum(1 for ev in visible_events if ev.edited)} 条"
+        f"[Manual edits] Edited=True count: "
+        f"{sum(1 for ev in visible_events if ev.edited)}"
     )
     print("")
-    print("主 Excel 最后只新增两列：")
+    print("Only two columns are added to the final Excel workbook:")
     print("  l_label")
     print("  r_label")
     print("")
-    print("标签规则：")
-    print("  开始 -> first E3 = 0")
+    print("Labeling rules:")
+    print("  Start -> first E3 = 0")
     print("  E3 -> E1 = 3")
     print("  E1 -> E2 = 1")
     print("  E2 -> next E3 = 2")
-    print("  last E1 -> 结束 = 0")
+    print("  Last E1 -> end = 0")
     print("=" * 80)
 
 
@@ -3200,23 +3200,23 @@ def main():
     )
 
     print("=" * 80)
-    print("使用顺序：")
+    print("Usage order:")
     print("")
-    print("STEP1 窗口：")
-    print("  Pelvis X/Y 固定")
-    print("  拖 L shank -> 左侧整体时间移动")
-    print("  拖 R shank -> 右侧整体时间移动")
+    print("STEP1 window:")
+    print("  Pelvis X/Y fixed")
+    print("  Drag L shank -> shift the whole left side in time")
+    print("  Drag R shank -> shift the whole right side in time")
     print("")
-    print("STEP2 窗口：")
-    print("  shank 固定")
-    print("  拖 thigh / foot -> 单腿内部微调")
-    print("  事件只用于总标签：foot只加E1；shank只加E2/E3；thigh原Event2保留但固定，仅作参考")
-    print("  拖虚线 -> 微调事件")
-    print("  右键虚线 -> 删除事件")
+    print("STEP2 window:")
+    print("  Shank fixed")
+    print("  Drag thigh/foot -> fine-tune alignment within the leg")
+    print("  Aggregate label events: foot E1; shank E2/E3; thigh E2 remains fixed as a reference only")
+    print("  Drag dashed line -> fine-tune event position")
+    print("  Right-click dashed line -> delete event")
     print("")
-    print("任一窗口按 S -> 保存")
+    print("Press S in either window to save")
     print("")
-    print("最终主Excel只新增 l_label / r_label")
+    print("Only l_label and r_label are added to the final workbook")
     print("=" * 80)
 
     plt.show()

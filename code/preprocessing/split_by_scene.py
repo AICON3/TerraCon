@@ -2,44 +2,44 @@
 # -*- coding: utf-8 -*-
 
 """
-已经拼接好的 7 个 IMU Excel -> 按指定场景直接切分 XLSX
+Seven merged IMU Excel workbooks -> split directly into scene-specific XLSX files
 
-特点
+Features
 ----
-1. 支持直接指定受试者、场景、传感器。
-2. 指定什么就只处理什么，不扫描/跳过其它目标。
-3. 目标 XLSX 已存在时直接覆盖，不再做“已存在跳过”判断。
-4. 默认场景开始前 0.5 s、结束后 0.5 s；运行时可分别用 --before 和 --after 指定。
-5. 不重新拼接、不滤波、不插值、不重新对齐。
-6. 保留拼接 Excel 原始行顺序，只按时间窗口截取。
+1. Select subjects, scenes, and sensors explicitly.
+2. Process only selected targets without scanning unrelated targets.
+3. Overwrite existing target XLSX files.
+4. Default to 0.5 s padding before/after each scene; override with --before and --after.
+5. Do not re-merge, filter, interpolate, or re-align.
+6. Preserve original row order and select by time window.
 
-示例
+Examples
 ----
-只重做 sub_025 的 stair_fwd pelvis:
+Rebuild stair_fwd pelvis for sub_025 only:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --scene stair_fwd \
       --sensor G
 
-重做 sub_025 的 stair_fwd 全部 7 个传感器:
+Rebuild stair_fwd for all seven sensors of sub_025:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --scene stair_fwd \
       --all-sensors
 
-重做 sub_025 的两个场景、只处理 pelvis:
+Rebuild two scenes for pelvis only in sub_025:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --scenes stair_fwd stair_bwd \
       --sensor G
 
-重做 sub_025 的全部场景、全部 7 个传感器:
+Rebuild all scenes and sensors for sub_025:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --all-scenes \
       --all-sensors
 
-例如：场景开始前保留 1.0 s、结束后保留 2.0 s:
+Example: retain 1.0 s before and 2.0 s after each scene:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --all-scenes \
@@ -57,7 +57,7 @@ import pandas as pd
 from openpyxl import load_workbook
 
 
-BASE_DIR = Path("/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721")
+BASE_DIR = Path("/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721")
 STITCHED_ROOT = BASE_DIR / "original_data"
 TIME_ROOT = BASE_DIR / "device_export"
 OUTPUT_ROOT = BASE_DIR / "original_devide"
@@ -72,7 +72,7 @@ SENSOR_MAP = {
     "R3": "R_foot",
 }
 
-SKIP_SHEETS = {"文件信息", "未解析字节", "info", "Info", "INFO"}
+SKIP_SHEETS = {"File Info", "Unparsed Bytes", "\u6587\u4ef6\u4fe1\u606f", "\u672a\u89e3\u6790\u5b57\u8282", "info", "Info", "INFO"}
 
 OUTPUT_COLUMNS = [
     "sample_index",
@@ -98,35 +98,37 @@ OUTPUT_COLUMNS = [
 COLUMN_CANDIDATES = {
     "timestamp": [
         "timestamp",
-        "时间戳",
-        "时间戳原始字符串",
+        "Timestamp",
+        "Raw timestamp string",
         "timestamp_aligned",
         "aligned_timestamp",
         "timestamp_device",
+        "\u8bbe\u5907\u65f6\u95f4\u6233", "\u65f6\u95f4\u6233\u539f\u59cb\u5b57\u7b26\u4e32", "\u65f6\u95f4\u6233",
     ],
     "timestamp_device": [
         "timestamp_device",
-        "设备时间戳",
-        "时间戳原始字符串",
-        "时间戳",
+        "Device timestamp",
+        "Raw timestamp string",
+        "Timestamp",
         "timestamp",
+        "\u65f6\u95f4\u6233", "\u65f6\u95f4\u6233\u539f\u59cb\u5b57\u7b26\u4e32",
     ],
-    "accel_x_g": ["accel_x_g", "X轴加速度(g)", "X轴加速度（g）", "加速度X(g)"],
-    "accel_y_g": ["accel_y_g", "Y轴加速度(g)", "Y轴加速度（g）", "加速度Y(g)"],
-    "accel_z_g": ["accel_z_g", "Z轴加速度(g)", "Z轴加速度（g）", "加速度Z(g)"],
+    "accel_x_g": ["accel_x_g", "X acceleration (g)", "\u0058\u8f74\u52a0\u901f\u5ea6(g)", "\u0058\u8f74\u52a0\u901f\u5ea6\uff08g\uff09", "\u52a0\u901f\u5ea6X(g)"],
+    "accel_y_g": ["accel_y_g", "Y acceleration (g)", "\u0059\u8f74\u52a0\u901f\u5ea6(g)", "\u0059\u8f74\u52a0\u901f\u5ea6\uff08g\uff09", "\u52a0\u901f\u5ea6Y(g)"],
+    "accel_z_g": ["accel_z_g", "Z acceleration (g)", "\u005a\u8f74\u52a0\u901f\u5ea6(g)", "\u005a\u8f74\u52a0\u901f\u5ea6\uff08g\uff09", "\u52a0\u901f\u5ea6Z(g)"],
     "gyro_x_deg_s": [
-        "gyro_x_deg_s", "X轴角速度(deg/s)", "X轴角速度（deg/s）", "角速度X(deg/s)"
+        "gyro_x_deg_s", "X angular velocity (deg/s)", "\u0058\u8f74\u89d2\u901f\u5ea6(deg/s)", "\u0058\u8f74\u89d2\u901f\u5ea6\uff08deg/s\uff09", "\u89d2\u901f\u5ea6X(deg/s)"
     ],
     "gyro_y_deg_s": [
-        "gyro_y_deg_s", "Y轴角速度(deg/s)", "Y轴角速度（deg/s）", "角速度Y(deg/s)"
+        "gyro_y_deg_s", "Y angular velocity (deg/s)", "\u0059\u8f74\u89d2\u901f\u5ea6(deg/s)", "\u0059\u8f74\u89d2\u901f\u5ea6\uff08deg/s\uff09", "\u89d2\u901f\u5ea6Y(deg/s)"
     ],
     "gyro_z_deg_s": [
-        "gyro_z_deg_s", "Z轴角速度(deg/s)", "Z轴角速度（deg/s）", "角速度Z(deg/s)"
+        "gyro_z_deg_s", "Z angular velocity (deg/s)", "\u005a\u8f74\u89d2\u901f\u5ea6(deg/s)", "\u005a\u8f74\u89d2\u901f\u5ea6\uff08deg/s\uff09", "\u89d2\u901f\u5ea6Z(deg/s)"
     ],
-    "angle_x_deg": ["angle_x_deg", "X轴角度(deg)", "X轴角度（deg）", "角度X(deg)"],
-    "angle_y_deg": ["angle_y_deg", "Y轴角度(deg)", "Y轴角度（deg）", "角度Y(deg)"],
-    "angle_z_deg": ["angle_z_deg", "Z轴角度(deg)", "Z轴角度（deg）", "角度Z(deg)"],
-    "source_file": ["source_file", "源文件", "原始文件"],
+    "angle_x_deg": ["angle_x_deg", "X angle (deg)", "\u0058\u8f74\u89d2\u5ea6(deg)", "\u0058\u8f74\u89d2\u5ea6\uff08deg\uff09", "\u89d2\u5ea6X(deg)"],
+    "angle_y_deg": ["angle_y_deg", "Y angle (deg)", "\u0059\u8f74\u89d2\u5ea6(deg)", "\u0059\u8f74\u89d2\u5ea6\uff08deg\uff09", "\u89d2\u5ea6Y(deg)"],
+    "angle_z_deg": ["angle_z_deg", "Z angle (deg)", "\u005a\u8f74\u89d2\u5ea6(deg)", "\u005a\u8f74\u89d2\u5ea6\uff08deg\uff09", "\u89d2\u5ea6Z(deg)"],
+    "source_file": ["source_file", "Source file", "Original file", "\u6e90\u6587\u4ef6", "\u539f\u59cb\u6587\u4ef6"],
     "time_offset_seconds": ["time_offset_seconds"],
     "time_alignment_method": ["time_alignment_method"],
     "time_alignment_confidence": ["time_alignment_confidence"],
@@ -143,7 +145,7 @@ def normalize_subject(value):
         return f"sub_{int(m.group(1)):03d}"
     if re.fullmatch(r"\d+", text):
         return f"sub_{int(text):03d}"
-    raise ValueError(f"无法识别受试者编号: {value}")
+    raise ValueError(f"Cannot identify subject number: {value}")
 
 
 def find_scene_time_file(subject):
@@ -151,30 +153,38 @@ def find_scene_time_file(subject):
     subject_dir = TIME_ROOT / subject
 
     exact_candidates = [
-        subject_dir / f"场景时间记录表_sub{subject_num}.xlsm",
-        subject_dir / f"场景时间记录表_{subject}.xlsm",
-        subject_dir / f"场景时间记录表_sub{subject_num}.xlsx",
-        subject_dir / f"场景时间记录表_{subject}.xlsx",
+        subject_dir / f"Scene timing table_sub{subject_num}.xlsm",
+        subject_dir / f"\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868_sub{subject_num}.xlsm",
+        subject_dir / f"Scene timing table_{subject}.xlsm",
+        subject_dir / f"\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868_{subject}.xlsm",
+        subject_dir / f"Scene timing table_sub{subject_num}.xlsx",
+        subject_dir / f"\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868_sub{subject_num}.xlsx",
+        subject_dir / f"Scene timing table_{subject}.xlsx",
+        subject_dir / f"\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868_{subject}.xlsx",
     ]
 
     for p in exact_candidates:
         if p.exists():
             return p
 
-    candidates = sorted(subject_dir.glob("场景时间记录表*.xlsm"))
+    candidates = sorted(subject_dir.glob("Scene timing table*.xlsm"))
     if not candidates:
-        candidates = sorted(subject_dir.glob("场景时间记录表*.xlsx"))
+        candidates = sorted(subject_dir.glob("\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868*.xlsm"))
+    if not candidates:
+        candidates = sorted(subject_dir.glob("Scene timing table*.xlsx"))
+    if not candidates:
+        candidates = sorted(subject_dir.glob("\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868*.xlsx"))
 
     if not candidates:
         raise FileNotFoundError(
-            f"未找到场景时间记录表: {subject_dir}/场景时间记录表*.xlsm"
+            f"Scene timing sheet not found: {subject_dir}/Scene timing table*.xlsm"
         )
 
     return candidates[0]
 
 
 def read_scene_table(filepath):
-    """读取场景 / 开始时间 / 结束时间。"""
+    """Read scene, start time, and end time."""
     wb = load_workbook(filepath, data_only=True, read_only=True)
 
     for ws in wb.worksheets:
@@ -187,11 +197,11 @@ def read_scene_table(filepath):
 
         for i, row in enumerate(rows[:20]):
             values = [str(v).strip() if v is not None else "" for v in row]
-            if "场景" in values and "开始时间" in values and "结束时间" in values:
+            if ("Scene" in values and "Start time" in values and "End time" in values) or all(name in values for name in ("\u573a\u666f", "\u5f00\u59cb\u65f6\u95f4", "\u7ed3\u675f\u65f6\u95f4")):
                 header_row_idx = i
-                scene_col = values.index("场景")
-                start_col = values.index("开始时间")
-                end_col = values.index("结束时间")
+                scene_col = values.index("Scene") if "Scene" in values else values.index("\u573a\u666f")
+                start_col = values.index("Start time") if "Start time" in values else values.index("\u5f00\u59cb\u65f6\u95f4")
+                end_col = values.index("End time") if "End time" in values else values.index("\u7ed3\u675f\u65f6\u95f4")
                 break
 
         if header_row_idx is None:
@@ -227,7 +237,7 @@ def read_scene_table(filepath):
             return scenes
 
     raise ValueError(
-        f"时间表中没有找到有效的“场景 / 开始时间 / 结束时间”数据: {filepath}"
+        f"No valid scene/start/end time records found: {filepath}"
     )
 
 
@@ -240,8 +250,8 @@ def first_existing_column(df, candidates):
 
 def read_stitched_excel(filepath):
     """
-    读取拼接 Excel。
-    如果因为 Excel 行数限制拆成多个数据 sheet，会按 sheet 顺序合并。
+    Read merged Excel workbooks.
+    If row limits require multiple worksheets, concatenate them in worksheet order.
     """
     xls = pd.ExcelFile(filepath, engine="openpyxl")
     frames = []
@@ -260,13 +270,13 @@ def read_stitched_excel(filepath):
             frames.append(df)
 
     if not frames:
-        raise ValueError(f"Excel 中没有找到带时间戳的 IMU 数据表: {filepath}")
+        raise ValueError(f"No timestamped IMU data worksheet found: {filepath}")
 
     return pd.concat(frames, ignore_index=True)
 
 
 def build_standard_frame(df, input_excel):
-    """把拼接 Excel 映射成目标 CSV 布局，不修改 IMU 数值。"""
+    """Map merged Excel to target CSV schema without changing IMU values."""
     out = pd.DataFrame(index=df.index)
 
     required = [
@@ -287,7 +297,7 @@ def build_standard_frame(df, input_excel):
         source = first_existing_column(df, COLUMN_CANDIDATES[target])
         if source is None:
             raise KeyError(
-                f"{input_excel.name} 缺少 {target} 对应列。当前列: {list(df.columns)}"
+                f"{input_excel.name} is missing {target} column. Available columns: {list(df.columns)}"
             )
         source_columns[target] = source
 
@@ -340,7 +350,7 @@ def select_scenes(all_scenes, wanted_scenes):
     missing = [s for s in wanted_scenes if s not in by_name]
     if missing:
         raise ValueError(
-            "时间记录表中找不到这些场景: " + ", ".join(missing)
+            "These scenes are absent from the timing sheet: " + ", ".join(missing)
         )
 
     return [by_name[s] for s in wanted_scenes]
@@ -350,15 +360,15 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
     input_excel = STITCHED_ROOT / subject / f"{subject}_{sensor}.xlsx"
 
     if not input_excel.exists():
-        raise FileNotFoundError(f"拼接 Excel 不存在: {input_excel}")
+        raise FileNotFoundError(f"Merged Excel workbook does not exist: {input_excel}")
 
-    print(f"\n[{sensor} -> {body_name}] 读取 {input_excel}")
+    print(f"\n[{sensor} -> {body_name}] Reading {input_excel}")
     raw = read_stitched_excel(input_excel)
     std = build_standard_frame(raw, input_excel)
 
     invalid_ts = int(std["timestamp"].isna().sum())
     if invalid_ts:
-        print(f"  注意: {invalid_ts} 行时间戳无法解析，无法落入场景窗口")
+        print(f"  Note: {invalid_ts} timestamps could not be parsed and cannot be assigned to any scene")
 
     before_pad = pd.Timedelta(seconds=before_padding)
     after_pad = pd.Timedelta(seconds=after_padding)
@@ -371,7 +381,7 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
         mask = (std["timestamp"] >= start) & (std["timestamp"] < end)
         part = std.loc[mask].copy()
 
-        # 每个场景重新从 1 编号
+        # Restart numbering at 1 for each scene
         part.insert(0, "sample_index", range(1, len(part) + 1))
 
         part["timestamp"] = format_timestamp_milliseconds(part["timestamp"])
@@ -386,7 +396,7 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
 
         out_file = out_dir / f"{subject}_imu_{body_name}.xlsx"
 
-        # 直接覆盖，不再检查“是否已存在”
+        # Overwrite directly without checking whether the output already exists
         with pd.ExcelWriter(out_file, engine="openpyxl") as writer:
             part.to_excel(writer, sheet_name="imu", index=False)
 
@@ -394,9 +404,9 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
             ws.freeze_panes = "A2"
             ws.auto_filter.ref = ws.dimensions
 
-            # 时间列前面已经格式化成完整毫秒字符串；
-            # 在 Excel 中再明确设为文本，后续直接删行 + Ctrl+S 保存，
-            # 不会自动变成 08:08.5 之类的格式。
+            # The time column was already formatted as a full millisecond-precision string;
+            # explicitly mark it as text in Excel so deleting rows and saving with Ctrl+S
+            # will not auto-convert it to shortened displays such as 08:08.5.
             header_map = {cell.value: cell.column for cell in ws[1]}
 
             for col_name in ("timestamp", "timestamp_device"):
@@ -432,75 +442,75 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
                 ws.column_dimensions[get_column_letter(col_idx)].width = widths.get(name, 16)
 
         print(
-            f"  [覆盖写入] {scene:<14} "
+            f"  [Overwriting] {scene:<14} "
             f"{start.strftime('%H:%M:%S.%f')[:-3]} ~ "
             f"{end.strftime('%H:%M:%S.%f')[:-3]} | "
-            f"{len(part)} 行 | {out_file}"
+            f"{len(part)} rows | {out_file}"
         )
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="直接指定受试者/场景/传感器，从拼接 Excel 重建场景 XLSX。"
+        description="Rebuild scene XLSX from merged Excel for selected subjects/scenes/sensors."
     )
 
     parser.add_argument(
         "--subject",
         required=True,
-        help="受试者，例如 25 / 025 / sub_025",
+        help="Subject, e.g. 25 / 025 / sub_025",
     )
 
     scene_group = parser.add_mutually_exclusive_group(required=True)
     scene_group.add_argument(
         "--scene",
-        help="只处理一个场景，例如 stair_fwd",
+        help="Process a single scene, e.g. stair_fwd",
     )
     scene_group.add_argument(
         "--scenes",
         nargs="+",
-        help="处理多个场景，例如 --scenes stair_fwd stair_bwd",
+        help="Process multiple scenes, e.g. --scenes stair_fwd stair_bwd",
     )
     scene_group.add_argument(
         "--all-scenes",
         action="store_true",
-        help="处理时间记录表中的全部场景",
+        help="Process all scenes listed in the timing sheet",
     )
 
     sensor_group = parser.add_mutually_exclusive_group(required=True)
     sensor_group.add_argument(
         "--sensor",
         choices=list(SENSOR_MAP.keys()),
-        help="只处理一个传感器：G/L1/L2/L3/R1/R2/R3",
+        help="Process only one sensor: G/L1/L2/L3/R1/R2/R3",
     )
     sensor_group.add_argument(
         "--sensors",
         nargs="+",
         choices=list(SENSOR_MAP.keys()),
-        help="处理指定多个传感器，例如 --sensors G L1 L2",
+        help="Process selected sensors, e.g. --sensors G L1 L2",
     )
     sensor_group.add_argument(
         "--all-sensors",
         action="store_true",
-        help="处理全部 7 个传感器",
+        help="Process all seven sensors",
     )
 
     parser.add_argument(
         "--before",
         type=float,
         default=None,
-        help="场景开始时间之前额外保留多少秒；默认 0.5",
+        help="Extra seconds before scene start; default 0.5",
     )
     parser.add_argument(
         "--after",
         type=float,
         default=None,
-        help="场景结束时间之后额外保留多少秒；默认 0.5",
+        help="Extra seconds after scene end; default 0.5",
     )
     parser.add_argument(
         "--padding",
         type=float,
         default=None,
-        help="兼容旧用法：前后统一预留多少秒。例如 --padding 1。若同时给 --before/--after，则对应的 --before/--after 优先。",
+        help="Legacy --padding option; --before/--after take precedence when provided.",
     )
 
     args = parser.parse_args()
@@ -510,11 +520,11 @@ def main():
     after_padding = base_padding if args.after is None else args.after
 
     if args.padding is not None and args.padding < 0:
-        parser.error("--padding 不能小于 0")
+        parser.error("--padding must be non-negative")
     if before_padding < 0:
-        parser.error("--before 不能小于 0")
+        parser.error("--before must be non-negative")
     if after_padding < 0:
-        parser.error("--after 不能小于 0")
+        parser.error("--after must be non-negative")
 
     subject = normalize_subject(args.subject)
 
@@ -542,15 +552,15 @@ def main():
         scenes = select_scenes(all_scenes, wanted_scenes)
 
     print("=" * 100)
-    print("指定场景直接重建 IMU XLSX")
-    print(f"受试者:       {subject}")
-    print(f"场景:         {', '.join(wanted_scenes)}")
-    print(f"传感器:       {', '.join(sensors)}")
-    print(f"拼接 Excel:   {STITCHED_ROOT / subject}")
-    print(f"时间记录表:   {time_file}")
-    print(f"输出目录:     {OUTPUT_ROOT / subject / 'imu'}")
-    print(f"时间窗口:     开始前 {before_padding:.3f} 秒，结束后 {after_padding:.3f} 秒")
-    print("已有目标 XLSX: 直接覆盖")
+    print("Rebuild IMU XLSX for selected scenes")
+    print(f"Subject:       {subject}")
+    print(f"Scenes:         {', '.join(wanted_scenes)}")
+    print(f"Sensors:       {', '.join(sensors)}")
+    print(f"Merged Excel:   {STITCHED_ROOT / subject}")
+    print(f"Timing sheet:   {time_file}")
+    print(f"Output directory:     {OUTPUT_ROOT / subject / 'imu'}")
+    print(f"Time window:     before start {before_padding:.3f} s，after end {after_padding:.3f} s")
+    print("Existing target XLSX files will be overwritten")
     print("=" * 100)
 
     for sensor in sensors:
@@ -563,7 +573,7 @@ def main():
             after_padding=after_padding,
         )
 
-    print("\n完成。")
+    print("\nCompleted.")
 
 
 if __name__ == "__main__":

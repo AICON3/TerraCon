@@ -4,30 +4,30 @@ import torch.nn.functional as F
 
 
 def FFT_for_Period(x, k=5):
-    """提取时序主要周期及其对应的频率幅值权重
+    """Extract dominant sequence periods and their spectral-amplitude weights
 
     x: [B, T, C]
 
-    返回:
-        period:        list[int]，长度 k，各主要分量的周期长度
-        period_weight: [B, k]，各周期对应频率的幅值，
-                       供后续 softmax 自适应加权融合使用
+    Returns:
+        period:        list[int], length k, containing periods of dominant components
+        period_weight: [B, k], spectral amplitudes corresponding to each period,
+                       Used later for adaptive softmax-weighted fusion
     """
     xf = torch.fft.rfft(x, dim=1)
     amplitude = torch.abs(xf).mean(dim=-1)      # [B, T//2 + 1]
 
     frequency = amplitude.mean(dim=0)           # [T//2 + 1]
-    # 用 clone 避免在 autograd 图上做原地修改
+    # Clone to avoid in-place modification of the autograd graph
     frequency = frequency.clone()
-    frequency[0] = 0.0                          # 压制直流分量
+    frequency[0] = 0.0                          # Suppress the DC component
 
-    # 保证 k 不超过频域采样点总数
+    # Ensure k does not exceed the number of frequency bins
     k = max(min(k, frequency.size(0) - 1), 1)
     _, top_list = torch.topk(frequency, k)
 
     period = []
     for top in top_list.detach().cpu().tolist():
-        # 防御除零风险
+        # Guard against division by zero
         top = max(int(top), 1)
         period.append(max(x.shape[1] // top, 1))
 
@@ -80,25 +80,25 @@ class TimesBlock(nn.Module):
             if length % period != 0:
                 length = (length // period + 1) * period
                 pad_len = length - T
-                # 用 new_zeros 保持 dtype / device 与输入一致
-                # (torch.zeros 默认 float32，混合精度下会导致 cat 报错)
+                # Use new_zeros to preserve input dtype and device
+                # (torch.zeros defaults to float32, which can break cat under mixed precision)
                 padding = x.new_zeros(B, pad_len, C)
                 out = torch.cat([x, padding], dim=1)
             else:
                 out = x
 
-            # 变换到 2D 周期空间: [B, length, C] -> [B, C, length//period, period]
+            # Transform to 2D periodic space: [B, length, C] -> [B, C, length//period, period]
             out = out.reshape(B, length // period, period, C).permute(
                 0, 3, 1, 2
             )
             out = self.conv(out)
-            # 还原为 1D 时序: [B, C, length//period, period] -> [B, length, C]
+            # Restore 1D sequence: [B, C, length//period, period] -> [B, length, C]
             out = out.permute(0, 2, 3, 1).reshape(B, length, C)
             out = out[:, :T, :]
             res.append(out)
 
-        # 多周期自适应加权融合
-        # 按各周期对应频率的幅值做 softmax 加权，而不是简单取平均
+        # Adaptive weighted fusion over periods
+        # Weight periods with softmax over their spectral amplitudes instead of a simple mean
         res = torch.stack(res, dim=-1)                      # [B, T, C, k]
         period_weight = F.softmax(
             period_weight.float(), dim=1
@@ -109,15 +109,15 @@ class TimesBlock(nn.Module):
 
 
 class TimesNetMultiTask(nn.Module):
-    """TimesNet 多任务模型 (角度回归 + 步态分类)
+    """TimesNet multitask model (angle regression and gait classification)
 
-    结构:
+    Architecture:
         Linear Embedding -> TimesBlock x num_layers -> LayerNorm
-        -> 时序长度投影 -> {angle_head, gait_head}
+        -> temporal length projection -> {angle_head, gait_head}
 
-    输入:
-        x: [B, input_len, input_dim]   (默认 [B, 200, 42])
-    输出:
+    Input:
+        x: [B, input_len, input_dim]   (default [B, 200, 42])
+    Output:
         {"angle": [B, pred_len, angle_dim],
          "gait":  [B, pred_len, gait_dim]}
     """
@@ -142,11 +142,11 @@ class TimesNetMultiTask(nn.Module):
         self.angle_dim = angle_dim
         self.gait_dim = gait_dim
 
-        # 1. 局部特征嵌入
+        # 1. Local feature embedding
         self.embedding = nn.Linear(input_dim, d_model)
         self.dropout = nn.Dropout(dropout)
 
-        # 2. TimesBlock 堆叠
+        # 2. Stacked TimesBlocks
         self.blocks = nn.ModuleList([
             TimesBlock(
                 seq_len=input_len,
@@ -159,10 +159,10 @@ class TimesNetMultiTask(nn.Module):
 
         self.norm = nn.LayerNorm(d_model)
 
-        # 3. 时序长度投影: 将完整的 input_len 帧聚合映射到目标 pred_len
+        # 3. Map the entire input_len history to the target pred_len
         self.predict_linear = nn.Linear(input_len, pred_len)
 
-        # 4. 角度回归头 (angle_dim 维输出)
+        # 4. Angle regression head (angle_dim outputs)
         self.angle_head = nn.Sequential(
             nn.Linear(d_model, 128),
             nn.GELU(),
@@ -170,7 +170,7 @@ class TimesNetMultiTask(nn.Module):
             nn.Linear(128, angle_dim),
         )
 
-        # 5. 步态分类头 (gait_dim 类 logits)
+        # 5. Gait classification head (gait_dim logits)
         self.gait_head = nn.Sequential(
             nn.Linear(d_model, 128),
             nn.GELU(),
@@ -179,15 +179,15 @@ class TimesNetMultiTask(nn.Module):
         )
 
     def forward(self, x, **kwargs):
-        """输入:
+        """Input:
             x: [B, input_len, input_dim]
-        输出:
+        Output:
             {"angle": [B, pred_len, angle_dim],
              "gait":  [B, pred_len, gait_dim]}
         """
-        # 数据已在 dataset 中完成 nan_to_num 和 /100 归一化，
-        # 这里不再对 GPU 张量调用 torch.nan_to_num，避免部分
-        # PyTorch/CUDA 版本上的非法内存访问风险。
+        # The dataset has already applied nan_to_num and scaling by 1/100,
+        # so do not call torch.nan_to_num on GPU tensors to avoid
+        # illegal memory access with some PyTorch/CUDA versions.
         x = x.contiguous()
         if x.ndim != 3:
             raise ValueError(f"Input must be [B, T, F], but got {x.shape}")
@@ -196,25 +196,25 @@ class TimesNetMultiTask(nn.Module):
 
         if T != self.input_len:
             raise ValueError(
-                f"输入序列长度 {T} 与模型设定 input_len {self.input_len} 不一致"
+                f"Input length {T} differs from configured input_len {self.input_len}"
             )
 
-        # A. 线性嵌入
+        # A. Linear embedding
         h = self.embedding(x)
         h = self.dropout(h)
 
-        # B. 周期性 2D 卷积转换
+        # B. Periodic 2D convolution transformation
         for block in self.blocks:
             h = block(h)
 
         h = self.norm(h)  # [B, input_len, d_model]
 
-        # C. 跨时序投影到预测步长
+        # C. Project across time to the prediction horizon
         # [B, input_len, d_model] -> [B, d_model, input_len]
         # -> [B, d_model, pred_len] -> [B, pred_len, d_model]
         h = self.predict_linear(h.transpose(1, 2)).transpose(1, 2)
 
-        # D. 多任务输出
+        # D. Multitask outputs
         angle = self.angle_head(h)  # [B, pred_len, angle_dim]
         gait = self.gait_head(h)    # [B, pred_len, gait_dim]
 
@@ -236,4 +236,4 @@ if __name__ == "__main__":
     print("gait:", out["gait"].shape)
     assert out["angle"].shape == (8, 30, 8)
     assert out["gait"].shape == (8, 30, 2)
-    print("TimesNet 验证通过")
+    print("TimesNet validation passed")

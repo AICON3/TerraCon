@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-批量转换 device_export/sub_001 ~ sub_036 中 G/L1/L2/L3/R1/R2/R3 的 WIT 二进制文件。
+Batch-convert WIT binary files for G/L1/L2/L3/R1/R2/R3 under device_export/sub_001–sub_036.
 
-目标：
-1. 不修改、不删除 device_export 中任何原始文件。
-2. 每个 WIT 文件单独转换成一个 Excel。
-3. 每个传感器目录内的 WIT0、WIT1、WIT2... 按编号顺序再拼接成一个 Excel。
-4. 不因为同步头错误、时间非法等原因删除原始数据：
-   - 正常 28 字节帧写入“数据”工作表；
-   - 同步头之间出现的错位/异常字节写入“未解析字节”工作表；
-   - 文件尾不足 28 字节的内容也写入“未解析字节”工作表。
-5. 不对数值做 round()；同时保存每帧 raw_hex，便于回查原始字节。
-6. 拼接时不按时间重排，只按 WIT 文件编号 + 文件内原始顺序拼接。
+Goals:
+1. Do not change or delete any source files in device_export.
+2. Convert each WIT file into a separate Excel workbook.
+3. Concatenate WIT0/WIT1/WIT2... files numerically into one workbook per sensor.
+4. Do not discard raw bytes due to sync-header or invalid timestamp errors:
+   - Valid 28-byte frames go to the data worksheet;
+   - Misaligned or invalid bytes between sync headers go to the unparsed-bytes worksheet;
+   - Trailing fragments shorter than 28 bytes also go to the unparsed-bytes worksheet.
+5. Do not round numeric values; preserve raw_hex per frame for traceability.
+6. Concatenate by WIT file number and original byte order, without resorting by time.
 
-默认输入：
-/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/device_export
+Default input:
+/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/device_export
 
-默认输出：
-/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/original_picture
+Default output:
+/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/original_picture
 
-输出结构示例：
+Example output structure:
 original_picture/
   sub_001/
     G/
       sub_001_G_WIT0.xlsx
       sub_001_G_WIT1.xlsx
-      sub_001_G_拼接.xlsx
+      sub_001_G_merged.xlsx
     L1/
       ...
 """
@@ -43,63 +43,64 @@ from openpyxl.styles import Font, PatternFill, Alignment
 
 
 # =========================
-# 路径配置
+# Path configuration
 # =========================
-INPUT_ROOT = "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/device_export"
-OUTPUT_ROOT = "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/original_picture"
+INPUT_ROOT = "/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/device_export"
+OUTPUT_ROOT = "/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/original_picture"
 
 SUBJECT_START = 11
 SUBJECT_END = 11
 TARGET_DIR_NAMES = ["G", "L1", "L2", "L3", "R1", "R2", "R3"]
 
 # =========================
-# 二进制格式配置
+# Binary format configuration
 # =========================
 RECORD_SIZE = 28
 SYNC_HEADER = bytes([0x55, 0x61])
 
-# Excel 单工作表最大行数 1,048,576；预留 1 行表头
+# Excel worksheets have a limit of 1,048,576 rows; reserve one for the header
 MAX_DATA_ROWS_PER_SHEET = 1_048_575
-# Excel 单元格文本上限约 32767 字符；raw_hex 每字节约占 3 字符，因此异常字节分块保存
+# Excel text cells are limited to about 32,767 characters; chunk raw_hex data at ~3 characters per byte
 MAX_UNPARSED_BYTES_PER_ROW = 8000
 
 DATA_COLUMNS = [
-    "拼接序号",
-    "源文件",
-    "文件内帧序号",
-    "源字节起始偏移",
-    "同步头正确",
-    "时间是否合法",
-    "时间戳原始字符串",
-    "年份",
-    "月份",
-    "日期",
-    "小时",
-    "分钟",
-    "秒",
-    "毫秒",
-    "X轴加速度(g)",
-    "Y轴加速度(g)",
-    "Z轴加速度(g)",
-    "X轴角速度(deg/s)",
-    "Y轴角速度(deg/s)",
-    "Z轴角速度(deg/s)",
-    "X轴角度(deg)",
-    "Y轴角度(deg)",
-    "Z轴角度(deg)",
+    "Merge index",
+    "Source file",
+    "Frame index in file",
+    "Source byte offset",
+    "Sync header valid",
+    "Timestamp valid",
+    "timestamp",
+    "Raw timestamp string",
+    "Year",
+    "Month",
+    "Day",
+    "Hour",
+    "Minute",
+    "Second",
+    "Millisecond",
+    "X acceleration (g)",
+    "Y acceleration (g)",
+    "Z acceleration (g)",
+    "X angular velocity (deg/s)",
+    "Y angular velocity (deg/s)",
+    "Z angular velocity (deg/s)",
+    "X angle (deg)",
+    "Y angle (deg)",
+    "Z angle (deg)",
     "raw_hex",
 ]
 
 UNPARSED_COLUMNS = [
-    "源文件",
-    "起始偏移",
-    "结束偏移_不含",
-    "字节数",
-    "原因",
+    "Source file",
+    "Start offset",
+    "End offset (exclusive)",
+    "Byte count",
+    "Reason",
     "raw_hex",
 ]
 
-INFO_COLUMNS = ["项目", "内容"]
+INFO_COLUMNS = ["Field", "Value"]
 
 HEADER_FONT = Font(name="Microsoft YaHei", bold=True, color="FFFFFF", size=11)
 HEADER_FILL = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
@@ -107,7 +108,7 @@ HEADER_ALIGN = Alignment(horizontal="center", vertical="center")
 
 
 def to_signed(raw: int) -> int:
-    """16 位无符号整数 -> 有符号整数。"""
+    """Convert unsigned 16-bit integers to signed integers."""
     return raw - 65536 if raw & 0x8000 else raw
 
 
@@ -125,7 +126,7 @@ def check_time_valid(
     second: int,
     millisecond: int,
 ) -> bool:
-    """只做标记，不会因为时间非法删除该帧。"""
+    """Flag invalid timestamps without dropping frames."""
     if not (2000 <= year <= 2099):
         return False
     if not (0 <= millisecond <= 999):
@@ -138,9 +139,9 @@ def check_time_valid(
 
 
 def parse_frame(chunk: bytes, byte_offset: int, source_filename: str, file_frame_index: int) -> Dict:
-    """解析完整 28 字节帧。即使时间非法，也保留并返回。"""
+    """Parse a complete 28-byte frame, retaining frames with invalid timestamps."""
     if len(chunk) != RECORD_SIZE:
-        raise ValueError(f"帧长度不是 {RECORD_SIZE} 字节")
+        raise ValueError(f"Frame length is not {RECORD_SIZE} bytes")
 
     sync_ok = chunk[:2] == SYNC_HEADER
     data = chunk[2:]
@@ -171,6 +172,11 @@ def parse_frame(chunk: bytes, byte_offset: int, source_filename: str, file_frame
     )
 
     time_valid = check_time_valid(year, month, day, hour, minute, second, millisecond)
+    timestamp = (
+        datetime(year, month, day, hour, minute, second, millisecond * 1000)
+        if time_valid
+        else None
+    )
 
     return {
         "source_filename": source_filename,
@@ -178,6 +184,7 @@ def parse_frame(chunk: bytes, byte_offset: int, source_filename: str, file_frame
         "byte_offset": byte_offset,
         "sync_ok": sync_ok,
         "time_valid": time_valid,
+        "timestamp": timestamp,
         "timestamp_raw": timestamp_raw,
         "year": year,
         "month": month,
@@ -201,12 +208,12 @@ def parse_frame(chunk: bytes, byte_offset: int, source_filename: str, file_frame
 
 def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
     """
-    逐文件扫描：
-    - 遇到 55 61 且后面至少 28 字节：解析为 frame；
-    - 其它字节不丢弃，连续收集为 unparsed；
-    - 文件尾不足 28 字节也进入 unparsed。
+    Scan each file:
+    - At 55 61 with at least 28 remaining bytes, parse a frame;
+    - Collect all other bytes into an unparsed segment;
+    - Trailing fragments smaller than 28 bytes are also unparsed.
 
-    产出：("frame", record) 或 ("unparsed", segment)
+    Yield: ("frame", record) or ("unparsed", segment)
     """
     with open(filepath, "rb") as f:
         raw = f.read()
@@ -220,8 +227,8 @@ def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
 
     def flush_unparsed(end_pos: int, reason: str):
         """
-        返回一个列表。异常原始字节过长时分块写入多行，避免超过 Excel 单元格文本上限。
-        分块只影响 Excel 展示，不丢字节、不改变字节顺序。
+        Return a list; chunk long invalid-byte sequences into multiple Excel rows to respect cell limits.
+        Chunking affects only Excel presentation; bytes and byte order are preserved.
         """
         nonlocal unparsed_start
         if unparsed_start is None or end_pos <= unparsed_start:
@@ -248,9 +255,9 @@ def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
     while pos < total:
         remain = total - pos
 
-        # 足够 28 字节并且当前位置就是同步头 -> 读取完整帧
+        # If 28 bytes remain and the current position is a sync header, read a complete frame
         if remain >= RECORD_SIZE and raw[pos:pos + 2] == SYNC_HEADER:
-            pending_list = flush_unparsed(pos, "同步头之间的异常/错位原始字节")
+            pending_list = flush_unparsed(pos, "Malformed or misaligned raw bytes between sync headers")
             for pending in pending_list:
                 yield "unparsed", pending
 
@@ -261,25 +268,25 @@ def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
             pos += RECORD_SIZE
             continue
 
-        # 剩余不足一帧：全部原样保留
+        # If fewer than one frame remains, preserve all remaining bytes
         if remain < RECORD_SIZE:
             if unparsed_start is None:
                 unparsed_start = pos
             pos = total
             break
 
-        # 当前不是同步头：先记住起点，逐字节寻找下一个同步头
+        # If not at a sync header, remember the offset and scan byte by byte for the next sync header
         if unparsed_start is None:
             unparsed_start = pos
         pos += 1
 
-    pending_list = flush_unparsed(total, "文件尾不足28字节或末尾异常/错位原始字节")
+    pending_list = flush_unparsed(total, "Trailing bytes shorter than 28 bytes or malformed/misaligned bytes")
     for pending in pending_list:
         yield "unparsed", pending
 
 
 def is_wit_file(filename: str) -> bool:
-    """识别 WIT0/WIT1/...，允许无扩展名或 .txt/.bin/.dat。"""
+    """Identify WIT0/WIT1/... with no extension or .txt/.bin/.dat."""
     if filename.startswith("."):
         return False
 
@@ -304,9 +311,9 @@ def make_header_cell(ws, value: str):
 
 
 class ExcelStreamWriter:
-    """支持数据超过 Excel 单 sheet 行数时自动分 sheet。"""
+    """Automatically use additional worksheets when exceeding Excel row limits."""
 
-    def __init__(self, output_path: str, title_prefix: str = "数据"):
+    def __init__(self, output_path: str, title_prefix: str = "Data"):
         self.output_path = output_path
         self.wb = Workbook(write_only=True)
         self.title_prefix = title_prefix
@@ -329,7 +336,7 @@ class ExcelStreamWriter:
         self.current_data_rows = 0
 
     def _create_unparsed_sheet(self):
-        self.unparsed_ws = self.wb.create_sheet(title="未解析字节")
+        self.unparsed_ws = self.wb.create_sheet(title="Unparsed Bytes")
         self.unparsed_ws.append([make_header_cell(self.unparsed_ws, x) for x in UNPARSED_COLUMNS])
 
     def append_frame(self, rec: Dict, concat_index: int):
@@ -343,6 +350,7 @@ class ExcelStreamWriter:
             rec["byte_offset"],
             rec["sync_ok"],
             rec["time_valid"],
+            rec["timestamp"],
             rec["timestamp_raw"],
             rec["year"],
             rec["month"],
@@ -379,7 +387,7 @@ class ExcelStreamWriter:
         self.total_unparsed_bytes += seg["byte_count"]
 
     def add_info_sheet(self, info_items: List[Tuple[str, str]]):
-        self.info_ws = self.wb.create_sheet(title="文件信息")
+        self.info_ws = self.wb.create_sheet(title="File Info")
         self.info_ws.append([make_header_cell(self.info_ws, x) for x in INFO_COLUMNS])
         for key, value in info_items:
             self.info_ws.append([key, value])
@@ -390,7 +398,7 @@ class ExcelStreamWriter:
 
 
 def convert_one_wit_file(filepath: str, output_path: str, sub_name: str, sensor_name: str) -> Dict[str, int]:
-    """一个 WIT -> 一个 Excel。"""
+    """One WIT file -> one Excel workbook."""
     writer = ExcelStreamWriter(output_path)
     concat_index = 0
 
@@ -403,16 +411,16 @@ def convert_one_wit_file(filepath: str, output_path: str, sub_name: str, sensor_
 
     file_size = os.path.getsize(filepath)
     writer.add_info_sheet([
-        ("受试者", sub_name),
-        ("传感器目录", sensor_name),
-        ("源文件", filepath),
-        ("源文件字节数", str(file_size)),
-        ("完整帧数", str(writer.total_frames)),
-        ("未解析片段数", str(writer.total_unparsed_segments)),
-        ("未解析字节数", str(writer.total_unparsed_bytes)),
-        ("记录大小", f"{RECORD_SIZE} 字节/帧"),
-        ("同步头", SYNC_HEADER.hex(" ").upper()),
-        ("说明", "没有因为时间非法或错位而删除原始字节；完整帧保存 raw_hex，异常/尾部字节保存在未解析字节工作表。"),
+        ("Participant", sub_name),
+        ("Sensor directory", sensor_name),
+        ("Source file", filepath),
+        ("Source file size (bytes)", str(file_size)),
+        ("Complete frame count", str(writer.total_frames)),
+        ("Unparsed segment count", str(writer.total_unparsed_segments)),
+        ("Unparsed byte count", str(writer.total_unparsed_bytes)),
+        ("Record size", f"{RECORD_SIZE} bytes/frame"),
+        ("Sync header", SYNC_HEADER.hex(" ").upper()),
+        ("Notes", "Raw bytes are retained even when timestamps are invalid or data are misaligned. Complete frames are stored as raw_hex; malformed or trailing bytes are stored in the Unparsed Bytes worksheet."),
     ])
     writer.save()
 
@@ -426,12 +434,12 @@ def convert_one_wit_file(filepath: str, output_path: str, sub_name: str, sensor_
 
 def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str, sensor_name: str) -> None:
     """
-    处理一个 G/L1/... 目录：
-    1) 每个 WIT 单独 Excel；
-    2) 所有 WIT 按编号顺序拼接成一个 Excel。
+    Process one G/L1/... directory:
+    1) Generate one workbook per WIT file;
+    2) Concatenate all WIT files in numeric order.
     """
     if not os.path.isdir(input_dir):
-        print(f"  [跳过] 目录不存在: {input_dir}")
+        print(f"  [Skipped] Directory does not exist: {input_dir}")
         return
 
     wit_files = [
@@ -441,30 +449,30 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
     wit_files.sort(key=wit_sort_key)
 
     if not wit_files:
-        print(f"  [跳过] 未找到 WIT 文件: {input_dir}")
+        print(f"  [Skipped] No WIT files found: {input_dir}")
         return
 
     os.makedirs(output_dir, exist_ok=True)
 
-    print(f"  [{sensor_name}] 找到 {len(wit_files)} 个 WIT 文件")
+    print(f"  [{sensor_name}] found {len(wit_files)} WIT files")
 
-    # 先逐个文件转换
+    # Convert each source file first
     for fn in wit_files:
         src = os.path.join(input_dir, fn)
         wit_stem = os.path.splitext(fn)[0]
         out_name = f"{sub_name}_{sensor_name}_{wit_stem}.xlsx"
         out_path = os.path.join(output_dir, out_name)
 
-        print(f"    单文件转换: {fn} -> {out_name}")
+        print(f"    Converting one file: {fn} -> {out_name}")
         stats = convert_one_wit_file(src, out_path, sub_name, sensor_name)
         print(
-            f"      完整帧={stats['frames']}，"
-            f"未解析字节={stats['unparsed_bytes']}，"
-            f"源文件={stats['file_bytes']} 字节"
+            f"      complete frames={stats['frames']}，"
+            f"unparsed bytes={stats['unparsed_bytes']}，"
+            f"source file={stats['file_bytes']} bytes"
         )
 
-    # 再做目录级拼接
-    merge_name = f"{sub_name}_{sensor_name}_拼接.xlsx"
+    # Then concatenate at the directory level
+    merge_name = f"{sub_name}_{sensor_name}_\u62fc\u63a5.xlsx"
     merge_path = os.path.join(output_dir, merge_name)
     merge_writer = ExcelStreamWriter(merge_path)
     concat_index = 0
@@ -473,7 +481,7 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
     for fn in wit_files:
         src = os.path.join(input_dir, fn)
         total_source_bytes += os.path.getsize(src)
-        print(f"    拼接读取: {fn}")
+        print(f"    Reading for merge: {fn}")
 
         for kind, obj in iter_file_content(src):
             if kind == "frame":
@@ -483,20 +491,20 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
                 merge_writer.append_unparsed(obj)
 
     merge_writer.add_info_sheet([
-        ("受试者", sub_name),
-        ("传感器目录", sensor_name),
-        ("源目录", input_dir),
-        ("拼接文件顺序", ", ".join(wit_files)),
-        ("源文件数量", str(len(wit_files))),
-        ("源文件总字节数", str(total_source_bytes)),
-        ("拼接完整帧数", str(merge_writer.total_frames)),
-        ("未解析片段数", str(merge_writer.total_unparsed_segments)),
-        ("未解析字节数", str(merge_writer.total_unparsed_bytes)),
-        ("拼接规则", "按 WIT 数字编号升序；每个文件内部保持原始顺序；不按时间排序。"),
-        ("说明", "没有因为时间非法或同步异常删除原始字节；异常字节统一保存在未解析字节工作表。"),
+        ("Participant", sub_name),
+        ("Sensor directory", sensor_name),
+        ("Source directory", input_dir),
+        ("Input file order", ", ".join(wit_files)),
+        ("Source file count", str(len(wit_files))),
+        ("Total source bytes", str(total_source_bytes)),
+        ("Merged complete frame count", str(merge_writer.total_frames)),
+        ("Unparsed segment count", str(merge_writer.total_unparsed_segments)),
+        ("Unparsed byte count", str(merge_writer.total_unparsed_bytes)),
+        ("Merge rule", "Files are concatenated in ascending WIT numeric order; original order within each file is preserved and records are not sorted by time."),
+        ("Notes", "Raw bytes are retained even when timestamps are invalid or synchronization fails. Malformed bytes are stored in the Unparsed Bytes worksheet."),
     ])
     merge_writer.save()
-    print(f"    已生成拼接文件: {merge_path}")
+    print(f"    Generated merged workbook: {merge_path}")
 
 
 def main(input_root: str = INPUT_ROOT, output_root: str = OUTPUT_ROOT) -> None:
@@ -504,16 +512,16 @@ def main(input_root: str = INPUT_ROOT, output_root: str = OUTPUT_ROOT) -> None:
     output_root = os.path.abspath(output_root)
 
     print("=" * 90)
-    print("device_export 批量原样转换 + 拼接")
-    print(f"输入根目录: {input_root}")
-    print(f"输出根目录: {output_root}")
-    print(f"受试者范围: sub_{SUBJECT_START:03d} ~ sub_{SUBJECT_END:03d}")
-    print(f"传感器目录: {', '.join(TARGET_DIR_NAMES)}")
-    print("原则: 不删除原始文件；不按时间筛帧；不 round；异常字节保留到 Excel。")
+    print("device_export batch conversion and concatenation")
+    print(f"Input root: {input_root}")
+    print(f"Output root: {output_root}")
+    print(f"Subject range: sub_{SUBJECT_START:03d} ~ sub_{SUBJECT_END:03d}")
+    print(f"Sensor directories: {', '.join(TARGET_DIR_NAMES)}")
+    print("Principle: preserve source files, frame order, exact values, and invalid bytes in Excel.")
     print("=" * 90)
 
     if not os.path.isdir(input_root):
-        raise FileNotFoundError(f"输入根目录不存在: {input_root}")
+        raise FileNotFoundError(f"Input root does not exist: {input_root}")
 
     os.makedirs(output_root, exist_ok=True)
 
@@ -523,10 +531,10 @@ def main(input_root: str = INPUT_ROOT, output_root: str = OUTPUT_ROOT) -> None:
         sub_output = os.path.join(output_root, sub_name)
 
         print(f"\n{'#' * 90}")
-        print(f"处理 {sub_name}")
+        print(f"Processing {sub_name}")
 
         if not os.path.isdir(sub_input):
-            print(f"[跳过] 受试者目录不存在: {sub_input}")
+            print(f"[Skipped] Subject directory does not exist: {sub_input}")
             continue
 
         for sensor_name in TARGET_DIR_NAMES:
@@ -539,11 +547,11 @@ def main(input_root: str = INPUT_ROOT, output_root: str = OUTPUT_ROOT) -> None:
                 sensor_name=sensor_name,
             )
 
-    print("\n全部处理结束。")
+    print("\nAll processing completed.")
 
 
 if __name__ == "__main__":
-    # 可选命令行参数：
+    # Optional CLI arguments:
     # python convert_device_export_no_trim.py [input_root] [output_root]
     in_root = sys.argv[1] if len(sys.argv) >= 2 else INPUT_ROOT
     out_root = sys.argv[2] if len(sys.argv) >= 3 else OUTPUT_ROOT

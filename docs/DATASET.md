@@ -27,6 +27,8 @@ The project tree contains the following major areas. The exact files in a partic
 
 The working processed-data tree contains participant directories named `sub_001` through `sub_048`. This describes the observed directory layout; it does not imply that every participant has complete recordings for every task.
 
+The repository also includes `processed data/information/equipment_information.xlsx`, `processed data/information/subject_information.xlsx`, and 16 scene images in `processed data/information/scence_pics/`. These information files are present in the GitHub repository; the full raw recordings and processed participant-level data are distributed separately.
+
 ## Seven-IMU naming used by preprocessing code
 
 | Sensor key | Body-location label in code |

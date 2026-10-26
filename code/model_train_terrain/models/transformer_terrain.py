@@ -55,11 +55,11 @@ class TransformerTerrainRegression(nn.Module):
         self.output_len = output_len
         self.terrain_dim = terrain_dim
 
-        # 1. 线性投影与位置编码
+        # 1. Linear projection and positional encoding
         self.input_proj = nn.Linear(input_dim, d_model)
         self.pos_encoder = PositionalEncoding(d_model=d_model)
 
-        # 2. Transformer Encoder 编码器主干
+        # 2. Transformer Encoder backbone
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
@@ -75,11 +75,11 @@ class TransformerTerrainRegression(nn.Module):
         self.norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-        # 3. 时序跨度投影: 将完整 200 帧聚合映射到目标未来步数 (30)
-        # 与整体基准评测模型统一，避免单纯截断导致的历史信息割裂
+        # 3. Project the complete 200-frame history to 30 future steps
+        # Match baseline models to avoid losing historical context through simple truncation
         self.time_projector = nn.Linear(200, output_len)
 
-        # 4. 纯净地形回归头 (严格保证 6 维通道天然对齐)
+        # 4. Six-channel terrain regression head with channel alignment preserved
         self.terrain_head = nn.Sequential(
             nn.Linear(d_model, 128),
             nn.GELU(),
@@ -90,37 +90,37 @@ class TransformerTerrainRegression(nn.Module):
         self.apply(weights_init)
 
     def forward(self, x):
-        """输入:
+        """Input:
 
             x: [B, 200, 42]
-        输出:
+        Output:
             dict: {"terrain": [B, 30, 6]}
         """
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
         if x.ndim != 3:
             raise ValueError(f"Input must be [B, T, F], but got {x.shape}")
 
-        # A. 映射与注入位置编码
+        # A. Project and add positional encodings
         h = self.input_proj(x)
         h = self.pos_encoder(h)
 
-        # B. Transformer 注意力编码
+        # B. Transformer attention encoding
         h = self.encoder(h)
         h = self.norm(h)
         h = self.dropout(h)  # [B, 200, d_model]
 
-        # C. 跨时序投影到 output_len (30 步)
+        # C. Temporal projection to output_len (30 steps)
         # [B, 200, d_model] -> [B, d_model, 200] -> [B, d_model, 30] -> [B, 30, d_model]
         h = self.time_projector(h.transpose(1, 2)).transpose(1, 2)
 
-        # D. 回归地形目标参数 [B, 30, 6]
-        # 通道排序严格与数据集一致: [ipsi_x, ipsi_y, ipsi_z, contra_x, contra_y, contra_z]
+        # D. Regress terrain parameters [B, 30, 6]
+        # Channel order matches the dataset: [ipsi_x, ipsi_y, ipsi_z, contra_x, contra_y, contra_z]
         terrain = self.terrain_head(h)
 
         return {"terrain": terrain}
 
 
-# 兼容别名
+# Compatibility aliases
 TransformerMultiTask = TransformerTerrainRegression
 
 
@@ -128,7 +128,7 @@ TransformerMultiTask = TransformerTerrainRegression
 # Test
 # =====================================================
 if __name__ == "__main__":
-    # 与 build_model("transformer", cfg) 传参完全一致
+    # Arguments match build_model("transformer", cfg)
     model = TransformerTerrainRegression(
         input_dim=42,
         d_model=128,
@@ -142,6 +142,6 @@ if __name__ == "__main__":
     dummy_x = torch.randn(8, 200, 42)
     out = model(dummy_x)
 
-    print("Transformer 验证通过:")
+    print("Transformer validation passed:")
     print("terrain shape:", out["terrain"].shape)  # torch.Size([8, 30, 6])
-    assert out["terrain"].shape == (8, 30, 6), "输出维度与训练任务要求不符！"
+    assert out["terrain"].shape == (8, 30, 6), "Output shape does not meet training requirements!"

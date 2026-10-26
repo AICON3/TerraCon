@@ -1,6 +1,6 @@
 # 7 IMU absolute time alignment v6
-# 不取共同时间区间，不做3秒裁剪
-# 使用所有IMU时间并集建立100Hz时间轴
+# Do not restrict to the common time interval or trim the first three seconds.
+# Build a 100 Hz timeline from the union of all IMU timestamps.
 
 import os
 import argparse
@@ -83,7 +83,7 @@ def process_task(input_root, output_root, subject, task, threshold):
         data[sensor] = df
         qc[sensor] = info
 
-    # 使用时间并集，不删除有效数据
+    # Use the union of timestamps and retain valid data.
     timeline = pd.DataFrame({
         "timestamp": pd.date_range(
             min(x.timestamp.min() for x in data.values()),

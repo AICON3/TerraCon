@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-将 label_3 中的源 Excel 重组为统一 processed 数据库结构。
+Reorganize source Excel workbooks in label_3 into a unified processed dataset.
 
-目标结构：
+Target structure:
 processed/
   sub_001/
     data/
@@ -18,14 +18,14 @@ processed/
         sub_001_<task>_label_terrain_contralateral.xlsx
     figures/
 
-核心规则：
-1. 不删行、不截断。
-2. time_s = timestamp - 当前任务第一帧 timestamp。
-3. 三类 label 的 time_s 直接复制 data 的 time_s，保证逐行严格一致。
-4. data 列顺序固定。
-5. 自动递归扫描 source-root 下全部 xlsx。
-6. walk/stair 不生成 terrain；其他任务按任务轴和源文件实际存在列动态拆分 terrain。
-7. terrain 语义固定：single=ipsilateral，same=contralateral；单独 x 的 double=contralateral。
+Core rules:
+1. Do not drop or truncate rows.
+2. time_s = timestamp minus the first timestamp of the current task.
+3. Copy the data time_s into all three label types to preserve row alignment.
+4. Preserve fixed data column order.
+5. Recursively scan all XLSX files under source-root.
+6. Do not generate terrain labels for walk/stair; other tasks use task axes and existing source columns.
+7. Terrain semantics: single=ipsilateral, same=contralateral; double=contralateral for x-only tasks.
 """
 
 import argparse
@@ -39,11 +39,11 @@ import pandas as pd
 
 
 DEFAULT_SOURCE_ROOT = Path(
-    "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/label_3"
+    "/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/label_3"
 )
 
 DEFAULT_OUTPUT_ROOT = Path(
-    "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/processed"
+    "/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/processed"
 )
 
 
@@ -144,7 +144,7 @@ CONTRA_COLUMNS = [
 ]
 
 
-# 常见旧列名 -> 新列名
+# Common legacy column names -> new column names
 ALIASES = {
     "timestamp": [
         "timestamp", "Timestamp", "time_stamp", "TimeStamp",
@@ -206,7 +206,7 @@ ALIASES = {
 
 
 def clean_column_name(col):
-    """统一去掉首尾空格、换行、重复空白。"""
+    """Normalize leading/trailing spaces, newlines, and repeated whitespace."""
     s = str(col).strip()
     s = re.sub(r"\s+", "_", s)
     return s
@@ -215,13 +215,13 @@ def clean_column_name(col):
 
 def detect_terrain_column_mapping(columns, task_name=None):
     """
-    自动识别 terrain 标签列，并统一为最终数据库列名。
+    Detect terrain label columns and normalize their final database names.
 
-    【最终语义】
+    [Final semantics]
     single -> ipsilateral
     same   -> contralateral
 
-    多轴任务（xy / xyz）常见源列：
+    Common source columns for multiaxis tasks (xy/xyz):
       terrain_x_single_label -> terrain_ipsilateral_x_label
       terrain_y_single_label -> terrain_ipsilateral_y_label
       terrain_z_single_label -> terrain_ipsilateral_z_label
@@ -230,7 +230,7 @@ def detect_terrain_column_mapping(columns, task_name=None):
       terrain_y_same_label   -> terrain_contralateral_y_label
       terrain_z_same_label   -> terrain_contralateral_z_label
 
-    单轴任务的源列可能不带 x/y/z，需要根据 task_name 判断轴：
+    Single-axis source columns may omit x/y/z; infer the axis from task_name:
 
       x_fwd / x_bwd:
         terrain_single_label -> terrain_ipsilateral_x_label
@@ -244,13 +244,13 @@ def detect_terrain_column_mapping(columns, task_name=None):
         terrain_single_label -> terrain_ipsilateral_z_label
         terrain_same_label   -> terrain_contralateral_z_label
 
-    允许源列中分隔符、大小写略有变化。
+    Allow minor variations in separators and capitalization of source columns.
     """
     mapping = {}
 
     task_name = (task_name or "").lower()
 
-    # 根据任务判断单轴任务的轴
+    # Determine the axis of a single-axis task from its task name
     task_axis = None
     if task_name.startswith("x_"):
         task_axis = "x"
@@ -268,14 +268,14 @@ def detect_terrain_column_mapping(columns, task_name=None):
         if "terrain" not in token_set and "terrain" not in clean:
             continue
 
-        # 先查源列里是否明确写了 x/y/z
+        # First check whether source columns explicitly specify x/y/z
         axis = None
         for a in ("x", "y", "z"):
             if a in token_set:
                 axis = a
                 break
 
-        # 单轴任务的 generic terrain_*_label 不带轴名
+        # Generic terrain_*_label columns in single-axis tasks omit the axis name
         if axis is None:
             axis = task_axis
 
@@ -285,7 +285,7 @@ def detect_terrain_column_mapping(columns, task_name=None):
         # corrected semantic mapping:
         # single = ipsilateral
         # same   = contralateral
-        # double = contralateral（单独 x 任务）
+        # double = contralateral (for the x-only task)
         if "single" in token_set:
             side = "ipsilateral"
         elif "same" in token_set:
@@ -302,12 +302,12 @@ def detect_terrain_column_mapping(columns, task_name=None):
 
 
 def normalize_columns(df, task_name=None):
-    """规范列名，并根据 ALIASES 自动重命名。"""
+    """Normalize column names and rename them using ALIASES."""
     df = df.copy()
     df.columns = [clean_column_name(c) for c in df.columns]
 
-    # 先对 terrain 标签做宽松识别。
-    # 这样即使源文件列名不是完全固定格式，也能识别 same/single + x/y/z。
+    # First identify terrain labels using flexible matching.
+    # This recognizes same/single and x/y/z even if source column names vary.
     terrain_auto_map = detect_terrain_column_mapping(df.columns, task_name=task_name)
     if terrain_auto_map:
         df = df.rename(columns=terrain_auto_map)
@@ -315,7 +315,7 @@ def normalize_columns(df, task_name=None):
     lower_to_real = {str(c).lower(): c for c in df.columns}
     rename_map = {}
 
-    # 先处理特殊 alias
+    # Handle special aliases first
     for canonical, candidates in ALIASES.items():
         if canonical in df.columns:
             continue
@@ -328,7 +328,7 @@ def normalize_columns(df, task_name=None):
 
     df = df.rename(columns=rename_map)
 
-    # data 传感器列按大小写不敏感匹配 canonical
+    # Match sensor data columns to canonical names case-insensitively
     lower_to_real = {str(c).lower(): c for c in df.columns}
     for canonical in DATA_COLUMNS:
         if canonical == "time_s":
@@ -343,7 +343,7 @@ def normalize_columns(df, task_name=None):
 
 def parse_subject(path):
     """
-    从文件名或上级路径中识别 sub_001 ~ sub_036。
+    Identify sub_001–sub_036 from filenames or parent directories.
     """
     text = str(path).replace("\\", "/")
     m = re.search(r"sub[_-]?(\d{1,3})", text, flags=re.IGNORECASE)
@@ -359,8 +359,8 @@ def parse_subject(path):
 
 def parse_task(path):
     """
-    从路径中识别任务。
-    使用预定义 TASKS，按长度降序避免 x_fwd 错匹配到 xyz1_fwd 等。
+    Identify the task from the path.
+    Match against predefined TASKS in descending length to avoid confusing x_fwd with xyz1_fwd.
     """
     text = str(path).lower().replace("-", "_")
     for task in sorted(TASKS, key=len, reverse=True):
@@ -380,33 +380,33 @@ def read_excel_safe(path, task_name=None):
 
 def calculate_time_s(timestamp_series):
     """
-    time_s = timestamp - 第一帧 timestamp
+    time_s = timestamp minus the first timestamp
 
-    支持：
+    Supports:
     - datetime
-    - Unix 秒
-    - Unix 毫秒
-    - Unix 微秒
-    - 普通数值时间
+    - Unix seconds
+    - Unix milliseconds
+    - Unix microseconds
+    - Generic numeric timestamps
 
-    返回：
+    Returns:
         time_s, mode
     """
     s = timestamp_series.copy()
 
-    # 1) 优先判断原列是否明显为 datetime 类型
+    # 1) First check whether the source column is already datetime
     if pd.api.types.is_datetime64_any_dtype(s):
         dt = pd.to_datetime(s)
         time_s = (dt - dt.iloc[0]).dt.total_seconds()
         return time_s.astype(float), "datetime"
 
-    # 2) 尝试数值
+    # 2) Try numeric conversion
     numeric = pd.to_numeric(s, errors="coerce")
     numeric_ratio = numeric.notna().mean()
 
     if numeric_ratio >= 0.95:
         if numeric.isna().iloc[0]:
-            raise ValueError("timestamp 第一帧不是有效数值，无法计算 time_s")
+            raise ValueError("First timestamp is invalid; cannot compute time_s")
 
         base = float(numeric.iloc[0])
         diff = numeric.astype(float) - base
@@ -418,10 +418,10 @@ def calculate_time_s(timestamp_series):
         median_dt = float(valid_diff.median()) if len(valid_diff) else np.nan
         abs_base = abs(base)
 
-        # 依据 epoch 数量级 + 相邻采样间隔判断单位
-        # 秒级 epoch 通常 ~1e9
-        # 毫秒级 epoch 通常 ~1e12
-        # 微秒级 epoch 通常 ~1e15
+        # Infer units from epoch magnitude and adjacent sampling intervals
+        # Epoch seconds are usually around 1e9
+        # Epoch milliseconds are usually around 1e12
+        # Epoch microseconds are usually around 1e15
         if abs_base >= 1e14:
             return diff / 1_000_000.0, "numeric_microseconds"
         elif abs_base >= 1e11:
@@ -429,26 +429,26 @@ def calculate_time_s(timestamp_series):
         elif abs_base >= 1e8:
             return diff, "numeric_seconds"
         else:
-            # 非 epoch 数值：根据相邻间隔做保守判断
+            # For non-epoch numeric values, infer units conservatively from intervals
             if np.isfinite(median_dt):
                 if median_dt >= 1000:
                     return diff / 1_000_000.0, "relative_microseconds"
                 elif median_dt >= 1:
-                    # 常见 100 Hz 毫秒时间戳相邻约 10
+                    # At 100 Hz, adjacent timestamps in milliseconds differ by about 10
                     return diff / 1_000.0, "relative_milliseconds"
 
             return diff, "relative_seconds"
 
-    # 3) 最后尝试字符串 datetime
+    # 3) Finally try parsing datetime strings
     dt = pd.to_datetime(s, errors="coerce")
     if dt.notna().mean() >= 0.95:
         if pd.isna(dt.iloc[0]):
-            raise ValueError("timestamp 第一帧无法解析为 datetime")
+            raise ValueError("First timestamp cannot be parsed as datetime")
         time_s = (dt - dt.iloc[0]).dt.total_seconds()
         return time_s.astype(float), "datetime_string"
 
     raise ValueError(
-        "timestamp 无法可靠解析。请检查该列是数值时间戳还是日期时间格式。"
+        "Cannot reliably parse timestamp; check whether the column stores numeric timestamps or datetimes."
     )
 
 
@@ -459,11 +459,11 @@ def count_useful_columns(df):
 
 def combine_group_files(file_infos, task_name=None):
     """
-    同一 subject + task 可能有多个 Excel。
-    选择包含有效列最多的文件作为 base，
-    再从其他同长度文件补充 base 中缺失的列。
+    One subject/task pair may contain multiple Excel workbooks.
+    Select as base the file containing the most valid columns,
+    then fill missing base columns from other files of the same length.
 
-    不做截断，不因长度不一致而硬合并。
+    Do not truncate or force merging files with different row counts.
     """
     loaded = []
 
@@ -481,7 +481,7 @@ def combine_group_files(file_infos, task_name=None):
         })
 
     if not loaded:
-        return None, [], "该 subject-task 没有可读取的 Excel"
+        return None, [], "No readable Excel workbook for this subject/task"
 
     loaded.sort(key=lambda x: (x["score"], x["rows"]), reverse=True)
     base_info = loaded[0]
@@ -494,8 +494,8 @@ def combine_group_files(file_infos, task_name=None):
 
         if len(other) != len(base):
             warnings.append(
-                f"跳过补列：{item['path']} 行数={len(other)}，"
-                f"base 行数={len(base)}"
+                f"Skipping supplementary columns from: {item['path']} rows={len(other)}，"
+                f"base rows={len(base)}"
             )
             continue
 
@@ -589,7 +589,7 @@ def process_one_group(
         ) + str(e)
         return report
 
-    # 强制第一帧为 0，减小浮点误差
+    # Set the first frame to 0 to reduce floating-point error
     time_s = pd.Series(time_s, index=df.index, dtype=float)
     if len(time_s):
         time_s.iloc[0] = 0.0
@@ -610,11 +610,11 @@ def process_one_group(
         _, data_status = write_excel(data_out, data_path, overwrite=overwrite)
         report["data_file"] = str(data_path)
 
-        # label 的时间轴必须来自 data
+        # The label time axis must come from the data
         master_time_s = data_out["time_s"].copy()
     else:
-        # 即使 data 缺列，也先保留计算出的主 time_s 做检查；
-        # 但不会把不完整 data 写入正式数据库。
+        # Retain the computed primary time_s for validation even when data columns are missing;
+        # do not write incomplete data to the formal dataset.
         master_time_s = df["time_s"].copy()
         data_status = "missing_columns"
 
@@ -636,22 +636,22 @@ def process_one_group(
 
     # ---------- TERRAIN LABELS ----------
     #
-    # 规则：
-    # walk_* / stair_*：没有 terrain 标签，不生成 terrain Excel。
+    # Rules:
+    # walk_* / stair_*: no terrain labels; do not generate terrain Excel files.
     #
-    # 其他任务根据任务类型确定“理论上应该存在”的轴：
+    # For other tasks, determine the theoretically expected axes from the task type:
     # x_*             -> x
     # y_*             -> y
     # z1~z4_*         -> z
     # xy1~xy6_*       -> x, y
     # xyz1~xyz3_*     -> x, y, z
     #
-    # 但正式输出时仍然按照源文件“实际存在”的 terrain 列提取：
-    # - 有什么提取什么
-    # - 不人为补空列
-    # - 若理论应有的标签缺失，在 _build_report.csv 中报告
+    # When exporting, extract only terrain columns actually present in the source:
+    # - Extract available columns
+    # - Do not create missing columns artificially
+    # - Report missing expected labels in _build_report.csv
     #
-    # normalize_columns() 已完成：
+    # normalize_columns() has completed:
     # terrain_x_single_label -> terrain_ipsilateral_x_label
     # terrain_y_single_label -> terrain_ipsilateral_y_label
     # terrain_z_single_label -> terrain_ipsilateral_z_label
@@ -661,7 +661,7 @@ def process_one_group(
     # terrain_z_same_label   -> terrain_contralateral_z_label
 
     def expected_terrain_axes(task_name):
-        """根据任务名判断理论上应该存在的 terrain 轴。"""
+        """Determine theoretically expected terrain axes from task name."""
         t = task_name.lower()
 
         if t.startswith("walk_") or t.startswith("stair_"):
@@ -682,8 +682,8 @@ def process_one_group(
         if re.match(r"^z\d+_", t):
             return ["z"]
 
-        # 未知的非 walk/stair 任务：
-        # 不强行猜轴，但后面仍会按实际存在列提取。
+        # Unknown non-walk/stair tasks:
+        # Do not guess axes; extract columns actually present in later steps.
         return []
 
     expected_axes = expected_terrain_axes(task)
@@ -700,7 +700,7 @@ def process_one_group(
         "z": "terrain_contralateral_z_label",
     }
 
-    # 按 x, y, z 固定顺序提取源文件实际存在的标签。
+    # Extract existing source labels in fixed x, y, z order.
     ipsi_available = [
         ipsi_by_axis[axis]
         for axis in ["x", "y", "z"]
@@ -713,7 +713,7 @@ def process_one_group(
         if contra_by_axis[axis] in df.columns
     ]
 
-    # 理论应有但源文件中没有的标签。
+    # Labels expected in principle but absent from the source.
     ipsi_missing = [
         ipsi_by_axis[axis]
         for axis in expected_axes
@@ -731,7 +731,7 @@ def process_one_group(
     report["detected_ipsi_columns"] = ",".join(ipsi_available)
     report["detected_contra_columns"] = ",".join(contra_available)
 
-    # walk / stair 不需要 terrain。
+    # Walk/stair tasks do not require terrain labels.
     terrain_required = not (
         task.lower().startswith("walk_")
         or task.lower().startswith("stair_")
@@ -778,11 +778,11 @@ def process_one_group(
         report["contra_file"] = str(contra_path)
 
     # ---------- TERRAIN QC ----------
-    # 对非 walk/stair 任务：
-    # 如果完全没有找到某一侧 terrain 标签，要明确报错。
+    # For non-walk/stair tasks:
+    # Explicitly report if no terrain labels are found for a side.
     if terrain_required:
         if not ipsi_available and not ipsi_missing:
-            # 未知任务名时，expected_axes 可能为空。
+            # expected_axes may be empty for unknown task names.
             ipsi_missing = ["ALL_TERRAIN_IPSILATERAL"]
             report["missing_ipsi_columns"] = ",".join(ipsi_missing)
 
@@ -790,7 +790,7 @@ def process_one_group(
             contra_missing = ["ALL_TERRAIN_CONTRALATERAL"]
             report["missing_contra_columns"] = ",".join(contra_missing)
 
-        # 如果实际出现的轴与理论任务轴不符，保留文件但给 warning。
+        # Keep the file but warn when observed axes differ from expected task axes.
         actual_ipsi_axes = [
             axis for axis, col in ipsi_by_axis.items()
             if col in df.columns
@@ -812,7 +812,7 @@ def process_one_group(
 
             if extra_ipsi or extra_contra:
                 msg = (
-                    f"terrain出现任务预期之外的轴: "
+                    f"Unexpected terrain axes for task: "
                     f"expected={expected_axes}, "
                     f"ipsi_extra={extra_ipsi}, "
                     f"contra_extra={extra_contra}"
@@ -822,13 +822,13 @@ def process_one_group(
                     if report["warning"] else ""
                 ) + msg
 
-        # 同侧和对侧实际存在的轴不一致，也给 warning。
+        # Also warn if same-side and contralateral available axes differ.
         actual_ipsi_set = set(actual_ipsi_axes)
         actual_contra_set = set(actual_contra_axes)
 
         if actual_ipsi_set != actual_contra_set:
             msg = (
-                "ipsilateral/contralateral terrain轴不一致: "
+                "Mismatch between ipsilateral and contralateral terrain axes: "
                 f"ipsi={actual_ipsi_axes}, "
                 f"contra={actual_contra_axes}"
             )
@@ -846,15 +846,15 @@ def process_one_group(
     if gait_missing:
         problems.append("GAIT_MISSING")
 
-    # walk/stair 不检查 terrain。
+    # Do not validate terrain labels for walk/stair tasks.
     if terrain_required:
         if ipsi_missing:
             problems.append("IPSI_MISSING")
         if contra_missing:
             problems.append("CONTRA_MISSING")
 
-        # 对非 walk/stair，如果某一侧连一个 terrain 标签都没找到，
-        # 也必须报告。
+        # For non-walk/stair tasks, if a side has no terrain label at all,
+        # this must also be reported.
         if not ipsi_available and "IPSI_MISSING" not in problems:
             problems.append("IPSI_MISSING")
 
@@ -879,7 +879,7 @@ def scan_source_files(source_root):
 
 def parse_int_list(text):
     """
-    支持：
+    Supports:
       --subjects 1 2 3
     """
     if not text:
@@ -889,36 +889,36 @@ def parse_int_list(text):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="将 label_3 重组为 processed 数据库"
+        description="Reorganize label_3 into processed dataset"
     )
 
     parser.add_argument(
         "--source-root",
         type=Path,
         default=DEFAULT_SOURCE_ROOT,
-        help=f"源目录，默认：{DEFAULT_SOURCE_ROOT}",
+        help=f"Source directory, default: {DEFAULT_SOURCE_ROOT}",
     )
     parser.add_argument(
         "--output-root",
         type=Path,
         default=DEFAULT_OUTPUT_ROOT,
-        help=f"输出目录，默认：{DEFAULT_OUTPUT_ROOT}",
+        help=f"Output directory, default: {DEFAULT_OUTPUT_ROOT}",
     )
     parser.add_argument(
         "--subjects",
         nargs="*",
-        help="只处理指定受试者，例如：--subjects 1 7 36",
+        help="Process selected subjects only, e.g. --subjects 1 7 36",
     )
     parser.add_argument(
         "--tasks",
         nargs="*",
         choices=TASKS,
-        help="只处理指定任务，例如：--tasks walk_fwd xyz1_fwd",
+        help="Process selected tasks only, e.g. --tasks walk_fwd xyz1_fwd",
     )
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="覆盖已存在输出文件",
+        help="Overwrite existing output files",
     )
 
     args = parser.parse_args()
@@ -927,21 +927,21 @@ def main():
     output_root = args.output_root.resolve()
 
     if not source_root.exists():
-        print(f"[ERROR] 源目录不存在：{source_root}")
+        print(f"[ERROR] Source directory does not exist: {source_root}")
         sys.exit(1)
 
     selected_subjects = parse_int_list(args.subjects)
     selected_tasks = set(args.tasks) if args.tasks else None
 
     print("=" * 80)
-    print("Trigait 数据库重组")
-    print(f"源目录: {source_root}")
-    print(f"输出目录: {output_root}")
-    print(f"覆盖已有文件: {args.overwrite}")
+    print("TerraCon dataset restructuring")
+    print(f"Source directory: {source_root}")
+    print(f"Output directory: {output_root}")
+    print(f"Overwrite existing files: {args.overwrite}")
     print("=" * 80)
 
     files = scan_source_files(source_root)
-    print(f"扫描到 Excel: {len(files)} 个")
+    print(f"Excel files scanned: {len(files)}")
 
     groups = defaultdict(list)
     ignored = []
@@ -962,10 +962,10 @@ def main():
 
         groups[(subject, task)].append({"path": path})
 
-    print(f"识别到 subject-task 组合: {len(groups)} 个")
+    print(f"Subject-task pairs identified: {len(groups)}")
 
     if ignored:
-        print(f"无法识别 subject/task 的 Excel: {len(ignored)} 个")
+        print(f"Excel files with unidentified subject/task: {len(ignored)}")
 
     reports = []
 
@@ -974,7 +974,7 @@ def main():
     ):
         print(
             f"[{i:03d}/{len(groups):03d}] "
-            f"{subject} | {task} | 源文件 {len(file_infos)} 个"
+            f"{subject} | {task} | Source files: {len(file_infos)}"
         )
 
         report = process_one_group(
@@ -992,34 +992,34 @@ def main():
 
         if report["missing_data_columns"]:
             print(
-                "    缺少 DATA: "
+                "    Missing DATA: "
                 f"{report['missing_data_columns']}"
             )
         if report["missing_gait_columns"]:
             print(
-                "    缺少 GAIT: "
+                "    Missing GAIT: "
                 f"{report['missing_gait_columns']}"
             )
         if report["missing_ipsi_columns"]:
             print(
-                "    缺少 IPSI: "
+                "    Missing IPSI: "
                 f"{report['missing_ipsi_columns']}"
             )
         if report["missing_contra_columns"]:
             print(
-                "    缺少 CONTRA: "
+                "    Missing CONTRA: "
                 f"{report['missing_contra_columns']}"
             )
 
         if report.get("detected_ipsi_columns"):
             print(
-                "    已识别 IPSI: "
+                "    Recognized IPSI: "
                 f"{report['detected_ipsi_columns']}"
             )
 
         if report.get("detected_contra_columns"):
             print(
-                "    已识别 CONTRA: "
+                "    Recognized CONTRA: "
                 f"{report['detected_contra_columns']}"
             )
 
@@ -1042,15 +1042,15 @@ def main():
         ignored_path = None
 
     print("\n" + "=" * 80)
-    print("处理完成")
-    print(f"报告: {report_path}")
+    print("Processing complete")
+    print(f"Report: {report_path}")
 
     if len(report_df):
-        print("\n状态统计:")
+        print("\nStatus summary:")
         print(report_df["status"].value_counts(dropna=False).to_string())
 
     if ignored_path:
-        print(f"未识别文件列表: {ignored_path}")
+        print(f"List of unidentified files: {ignored_path}")
 
     print("=" * 80)
 

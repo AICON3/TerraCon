@@ -1,27 +1,27 @@
 ############################################################
 # Trigait Multi-task 5-Fold Evaluation Framework  (v2)
 #
-# 基于 evaluation/evaluate_angel_gait.py 改写，用于 5 折训练产物的评估。
+# Adapted from evaluation/evaluate_angel_gait.py to evaluate five-fold training outputs.
 #
-# 数据路径:
+# Data path:
 #   <base>/splits/<fold_root>/<fold>/test.pkl
-#   例: splits/subject_5fold_split/fold3/test.pkl
+#   Example: splits/subject_5fold_split/fold3/test.pkl
 #
-# 权重路径:
+# Checkpoint path:
 #   <base>/train/checkpoints/<Model>/<fold>_angle_gait_<Model>/best_model.pth
-#   例: train/checkpoints/GPT4TS/fold3_angle_gait_GPT4TS/best_model.pth
+#   Example: train/checkpoints/GPT4TS/fold3_angle_gait_GPT4TS/best_model.pth
 #
-# 相对 v1 的变化:
-#   1. 权重目录默认按 <fold>_angle_gait_<Model> 解析（v1 以 foldN 优先），
-#      同时保留 <fold_root>_<fold>_angle_gait_<Model> 与裸 <fold> 作为回退
-#   2. --folds 默认自动发现（先看 splits/<fold_root>/，再看 checkpoints/<Model>/）
-#   3. 新增 --preflight: 只检查数据/权重路径与 state_dict 是否和当前模型代码
-#      匹配，不加载数据集、不跑推理，几秒内给出结论
-#   4. 加载权重前先比对键名与张量形状，不匹配时给出可读提示并跳过该折，
-#      而不是抛出上百行 RuntimeError（--strict 可改回直接报错）
-#   5. BASE_DIR 默认自动定位到脚本所在工程，本机与服务器都能直接跑
+# Changes relative to v1:
+#   1. Checkpoint directories default to <fold>_angle_gait_<Model> (v1 preferred foldN),
+#      with <fold_root>_<fold>_angle_gait_<Model> and plain <fold> as fallbacks
+#   2. --folds autodiscovers folds (first splits/<fold_root>/, then checkpoints/<Model>/)
+#   3. Added --preflight to verify dataset/checkpoint paths and state_dict against the current model
+#      without loading the dataset or running inference
+#   4. Compare checkpoint keys and shapes before loading; skip incompatible folds with readable diagnostics
+#      rather than lengthy RuntimeErrors (--strict restores immediate exceptions)
+#   5. BASE_DIR automatically locates the script's project root for local/server execution
 #
-# 评估指标与单折输出文件同 evaluate_angel_gait.py，另外增加跨折 mean/std 汇总。
+# Metrics and per-fold outputs match evaluate_angel_gait.py, with additional cross-fold mean/std summaries.
 ############################################################
 
 
@@ -69,7 +69,7 @@ from scipy.stats import pearsonr
 ############################################################
 
 
-# 服务器上的工程根目录（脚本被放到别处运行时作为兜底）
+# Fallback server project root when running the script elsewhere
 
 REMOTE_BASE_DIR = (
 
@@ -82,7 +82,7 @@ REMOTE_BASE_DIR = (
 )
 
 
-# 脚本自身位置: <base>/evaluation/evaluate_5fold.py
+# Script location: <base>/evaluation/evaluate_5fold.py
 
 CURRENT_DIR = os.path.dirname(
 
@@ -101,8 +101,8 @@ LOCAL_PROJECT_DIR = os.path.dirname(
 def _default_base_dir():
 
     """
-    优先使用脚本所在工程（本机下载后直接能跑），
-    否则回退到服务器上的绝对路径。
+    Prefer the project containing this script (supports local downloads),
+    otherwise fall back to the server's absolute path.
     """
 
     if os.path.isdir(
@@ -267,17 +267,17 @@ MODEL_MAP = {
 }
 
 
-# 训练时使用的权重目录名模板
+# Checkpoint directory naming template used during training
 
 DEFAULT_CKPT_TEMPLATE = "{fold}_angle_gait_{model}"
 
 
-# 数据目录默认层级
+# Default data-directory hierarchy
 
 DEFAULT_FOLD_ROOT = "subject_5fold_split"
 
 
-# 跨折汇总指标
+# Cross-fold summary metrics
 
 SUMMARY_METRICS = [
 
@@ -304,8 +304,8 @@ FOLD_RE = re.compile(
 ############################################################
 # Model Builder
 #
-# 与 evaluate_angel_gait.py 完全一致，保证同一 checkpoint
-# 得到与单 split 评估相同的模型结构。
+# Match evaluate_angel_gait.py so the same checkpoint
+# uses the same model architecture as the single-split evaluation.
 ############################################################
 
 
@@ -501,8 +501,8 @@ def discover_folds(
 
 ):
     """
-    自动发现折名。优先看数据目录，其次看权重目录。
-    返回规范化后的折名列表，例如 ["fold1", ..., "fold5"]。
+    Discover fold names: search the data directory first, then checkpoints.
+    Return normalized fold names, e.g. ["fold1", ..., "fold5"]。
     """
 
     found = set()
@@ -624,9 +624,9 @@ def ckpt_name_candidates(
 
 ):
     """
-    返回候补权重目录名（按优先级）。
+    Return candidate checkpoint directory names in priority order.
 
-    new    : ckpt_template，默认 fold3_angle_gait_GPT4TS
+    new    : ckpt_template, default fold3_angle_gait_GPT4TS
     legacy : fold3
     auto   : new -> <fold_root>_<fold>_angle_gait_<model> -> legacy
     """
@@ -728,8 +728,8 @@ def resolve_checkpoint(
 
 ):
     """
-    返回 (权重文件路径, 权重目录名, 尝试过的候选列表)。
-    都没找到时路径为 None。
+    Return (checkpoint path, directory name, candidate paths checked).
+    Return None when no path is found.
     """
 
     names = ckpt_name_candidates(
@@ -789,7 +789,7 @@ def candidate_test_paths(
 
 ):
     """
-    5 折布局优先，同时兼容平铺的 splits/<fold>/test.pkl。
+    Prefer five-fold layout while supporting flat splits/<fold>/test.pkl paths.
     """
 
     paths = []
@@ -875,9 +875,9 @@ def load_state_dict_only(
 
 ):
     """
-    读出 checkpoint，返回 (state_dict, epoch, best_loss)。
-    与 evaluate_angel_gait.py 的 load_checkpoint 相比，
-    这里不做 load_state_dict，只取内容，便于先做结构比对。
+    Read a checkpoint and return (state_dict, epoch, best_loss)。
+    Unlike evaluate_angel_gait.py load_checkpoint,
+    only extract checkpoint contents for a structure check; do not call load_state_dict.
     """
 
     checkpoint = torch.load(
@@ -950,13 +950,13 @@ def compare_state_dict(
 
 ):
     """
-    比对 checkpoint 与当前模型代码的结构。
+    Compare checkpoint structure with the current model implementation.
 
-    返回 dict:
-        missing     模型需要但 checkpoint 没有的键
-        unexpected  checkpoint 多出来的键
-        shape_diff  同名但形状不同的键
-        compatible 能否直接 strict 加载
+    Return a dictionary:
+        missing     keys required by the model but missing from the checkpoint
+        unexpected  additional checkpoint keys
+        shape_diff  same-named keys with different shapes
+        compatible whether strict loading is supported
     """
 
     model_state = model.state_dict()
@@ -1055,7 +1055,7 @@ def describe_mismatch(
 
 ):
     """
-    把不匹配情况压成一行可读说明。
+    Summarize incompatibilities in a readable single line.
     """
 
     parts = []
@@ -1064,9 +1064,9 @@ def describe_mismatch(
 
         parts.append(
 
-            f"缺少 {len(report['missing'])} 个键 "
+            f"Missing {len(report['missing'])} keys "
 
-            f"(如 {', '.join(report['missing'][:limit])})"
+            f"(e.g. {', '.join(report['missing'][:limit])})"
 
         )
 
@@ -1074,9 +1074,9 @@ def describe_mismatch(
 
         parts.append(
 
-            f"多出 {len(report['unexpected'])} 个键 "
+            f"Unexpected {len(report['unexpected'])} keys "
 
-            f"(如 {', '.join(report['unexpected'][:limit])})"
+            f"(e.g. {', '.join(report['unexpected'][:limit])})"
 
         )
 
@@ -1092,13 +1092,13 @@ def describe_mismatch(
 
         parts.append(
 
-            f"形状不同 {len(report['shape_diff'])} 处 ({sample})"
+            f"Shape mismatch at {len(report['shape_diff'])} entries ({sample})"
 
         )
 
     if not parts:
 
-        return "state_dict 与当前模型代码匹配"
+        return "state_dict matches current model implementation"
 
     return "；".join(
 
@@ -1109,10 +1109,10 @@ def describe_mismatch(
 
 ARCH_HINT = (
 
-    "该 checkpoint 的 state_dict 与 models/ 当前实现不是同一套结构，"
+    "The checkpoint state_dict differs from the current models/ implementation;"
 
-    "通常说明这份权重是用另一版模型代码训练出来的。"
-    "请确认训练时的 models/ 与本仓库一致，或用当前代码重新训练该折。"
+    "it was likely trained using another model version."
+    "Check that the models/ code matches training, or retrain this fold."
 
 )
 
@@ -1123,8 +1123,8 @@ class StateDictMismatch(
 
 ):
     """
-    权重结构与当前模型代码不匹配。
-    单独成类，便于与 OOM 等其他 RuntimeError 区分。
+    Checkpoint structure is incompatible with current model code.
+    Use a dedicated exception class to distinguish this from OOM or other errors.
     """
 
 
@@ -1632,14 +1632,14 @@ def evaluate_subject_task(
 ############################################################
 # Save Results
 #
-# 单折输出的 7 个文件与 evaluate_angel_gait.py 保持一致。
+# Keep the seven per-fold output files consistent with evaluate_angel_gait.py.
 ############################################################
 
 
 def to_builtin(value):
 
     """
-    numpy / pandas 标量转原生类型，便于写 json。
+    Convert NumPy/Pandas scalars into native JSON-serializable values.
     """
 
     if isinstance(
@@ -2268,7 +2268,7 @@ def evaluate_one_fold(
 
         raise StateDictMismatch(
 
-            f"{model_name}/{fold} state_dict 与当前模型代码不匹配: "
+            f"{model_name}/{fold} state_dict is incompatible with current model code: "
 
             + describe_mismatch(
 
@@ -2386,8 +2386,8 @@ def evaluate_one_fold(
 ############################################################
 # Preflight
 #
-# 只检查「路径 + state_dict 兼容性」，不加载数据集、不跑推理。
-# 对 200MB 级别的 test.pkl 来说，这是最省时间的排查方式。
+# Check only paths and state_dict compatibility; do not load data or run inference.
+# This avoids loading potentially large (~200 MB) test.pkl files.
 ############################################################
 
 
@@ -2414,7 +2414,7 @@ def run_preflight(
 
     print("=" * 78)
 
-    print("PREFLIGHT: 只检查路径与 state_dict 兼容性，不运行推理")
+    print("PREFLIGHT: checking paths and state_dict compatibility without inference")
 
     print("=" * 78)
 
@@ -2463,7 +2463,7 @@ def run_preflight(
             }
 
             ####################################################
-            # 数据
+            # Data
             ####################################################
 
             test_path = (
@@ -2499,7 +2499,7 @@ def run_preflight(
             )
 
             ####################################################
-            # 权重路径
+            # Checkpoint paths
             ####################################################
 
             checkpoint_path, ckpt_name, tried = resolve_checkpoint(
@@ -2522,7 +2522,7 @@ def run_preflight(
 
                 row["detail"] = (
 
-                    "权重缺失, 已尝试: "
+                    "Missing checkpoint; tried: "
 
                     + "; ".join(
 
@@ -2555,7 +2555,7 @@ def run_preflight(
             row["ckpt_ok"] = True
 
             ####################################################
-            # 结构比对
+            # Structural comparison
             ####################################################
 
             try:
@@ -2650,7 +2650,7 @@ def run_preflight(
         )
 
     ########################################################
-    # 报告
+    # Report
     ########################################################
 
     os.makedirs(
@@ -2781,7 +2781,7 @@ def run_preflight(
 
     print(
 
-        f"可直接评估: {len(ready)} 组"
+        f"Ready to evaluate: {len(ready)} combinations"
 
     )
 
@@ -2797,7 +2797,7 @@ def run_preflight(
 
     print(
 
-        f"不可评估:   {len(blocked)} 组"
+        f"Cannot evaluate: {len(blocked)} combinations"
 
     )
 
@@ -2815,7 +2815,7 @@ def run_preflight(
 
     print(
 
-        "报告已写入:",
+        "Report saved to:",
 
         csv_path
 
@@ -2864,9 +2864,9 @@ def main():
 
         help=(
 
-            "一次评估多个模型，例如 --models TCN GPT4TS；"
+            "Evaluate multiple models, e.g. --models TCN GPT4TS；"
 
-            "传 all 表示除 Persistence 外的全部模型"
+            "Pass all to select all models except Persistence"
 
         )
 
@@ -2880,7 +2880,7 @@ def main():
 
         default=None,
 
-        help="折名，例如 fold1 fold2；默认自动发现"
+        help="Fold names, e.g. fold1 fold2; autodiscovered by default"
 
     )
 
@@ -2890,7 +2890,7 @@ def main():
 
         default=DEFAULT_FOLD_ROOT,
 
-        help="test.pkl 的上一层目录名，默认 subject_5fold_split"
+        help="Parent directory of test.pkl; defaults to subject_5fold_split"
 
     )
 
@@ -2912,9 +2912,9 @@ def main():
 
         help=(
 
-            "权重目录命名方式: new=<fold>_angle_gait_<model>；"
+            "Checkpoint directory style: new=<fold>_angle_gait_<model>；"
 
-            "legacy=foldN；auto=依次尝试"
+            "legacy=foldN; auto=try each in order"
 
         )
 
@@ -2928,9 +2928,9 @@ def main():
 
         help=(
 
-            "权重目录名模板，可用 {fold} {model} {fold_root}，"
+            "Checkpoint directory name template supporting {fold} {model} {fold_root},"
 
-            "默认 {fold}_angle_gait_{model}"
+            "default {fold}_angle_gait_{model}"
 
         )
 
@@ -2942,7 +2942,7 @@ def main():
 
         default=None,
 
-        help="工程根目录，默认自动定位到脚本所在工程"
+        help="Project root; defaults to the directory containing this script"
 
     )
 
@@ -2952,7 +2952,7 @@ def main():
 
         default=None,
 
-        help="权重根目录，默认 <base_dir>/train/checkpoints"
+        help="Checkpoint root, default <base_dir>/train/checkpoints"
 
     )
 
@@ -2962,7 +2962,7 @@ def main():
 
         default=None,
 
-        help="结果根目录，默认 <base_dir>/evaluation_results"
+        help="Results root, default <base_dir>/evaluation_results"
 
     )
 
@@ -2974,9 +2974,9 @@ def main():
 
         help=(
 
-            "只评估指定的单个 test.pkl（所有折共用同一个文件，"
+            "Evaluate one specified test.pkl shared across folds ("
 
-            "一般用于调试）"
+            "usually for debugging)"
 
         )
 
@@ -3018,7 +3018,7 @@ def main():
 
         default=0,
 
-        help="只跑前 N 个 batch（调试用，0 表示全部）"
+        help="Run first N batches only (debugging; 0 means all)"
 
     )
 
@@ -3028,7 +3028,7 @@ def main():
 
         action="store_true",
 
-        help="只做路径与结构体检，不运行推理"
+        help="Check paths and model structure only, without inference"
 
     )
 
@@ -3038,7 +3038,7 @@ def main():
 
         action="store_true",
 
-        help="缺失或结构不匹配时直接报错，而不是跳过"
+        help="Raise on missing/incompatible artifacts rather than skipping"
 
     )
 
@@ -3048,7 +3048,7 @@ def main():
 
         action="store_true",
 
-        help="已存在 summary.json 的折跳过，便于断点续跑"
+        help="Skip folds with existing summary.json to resume interrupted runs"
 
     )
 
@@ -3216,7 +3216,7 @@ def main():
 
             print(
 
-                "[ERROR] 没有发现任何折，请用 --folds 指定"
+                "[ERROR] No folds found; specify --folds"
 
             )
 
@@ -3294,7 +3294,7 @@ def main():
 
             print(
 
-                f"[WARN] {model_name}: 未发现任何折，跳过"
+                f"[WARN] {model_name}: No folds found; skipping"
 
             )
 
@@ -3337,7 +3337,7 @@ def main():
             )
 
             ####################################################
-            # 断点续跑
+            # Resume an interrupted run
             ####################################################
 
             existing_summary = os.path.join(
@@ -3421,7 +3421,7 @@ def main():
                 continue
 
             ####################################################
-            # 数据
+            # Data
             ####################################################
 
             test_path = (
@@ -3450,7 +3450,7 @@ def main():
 
                 message = (
 
-                    f"{model_name}/{fold}: test.pkl 未找到, 候选: "
+                    f"{model_name}/{fold}: test.pkl not found; candidates: "
 
                     + "; ".join(
 
@@ -3507,7 +3507,7 @@ def main():
                 continue
 
             ####################################################
-            # 权重
+            # Checkpoints
             ####################################################
 
             checkpoint_path, ckpt_name, tried = resolve_checkpoint(
@@ -3530,7 +3530,7 @@ def main():
 
                 message = (
 
-                    f"{model_name}/{fold}: 权重未找到, 候选: "
+                    f"{model_name}/{fold}: Checkpoint not found; candidates: "
 
                     + "; ".join(
 
@@ -3579,7 +3579,7 @@ def main():
                 continue
 
             ####################################################
-            # 评估
+            # Evaluation
             ####################################################
 
             try:
@@ -3659,7 +3659,7 @@ def main():
             )
 
         ########################################################
-        # 跨折汇总
+        # Cross-fold summary
         ########################################################
 
         if fold_rows:
@@ -3722,12 +3722,12 @@ def main():
 
             print(
 
-                f"[WARN] {model_name}: 没有任何一折评估成功"
+                f"[WARN] {model_name}: No fold was evaluated successfully"
 
             )
 
         ########################################################
-        # 运行状态落盘（便于断点续跑与排查）
+        # Persist run state for resumption and troubleshooting
         ########################################################
 
         os.makedirs(
@@ -3799,7 +3799,7 @@ def main():
             )
 
     ########################################################
-    # 全部模型汇总
+    # All-model summary
     ########################################################
 
     if all_models_summary:

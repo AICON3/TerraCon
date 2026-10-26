@@ -130,8 +130,7 @@ def build_model(
 
 
 
-    # 修复：
-    # 防止 Persistence 等模型没有独立参数时报错
+    # Handle models such as Persistence that do not define independent parameters.
 
     model_cfg = cfg.get(
         name.upper(),

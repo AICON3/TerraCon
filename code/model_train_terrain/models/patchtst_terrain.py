@@ -56,14 +56,14 @@ class PatchTSTTerrainRegression(nn.Module):
         self.stride = stride
         self.terrain_dim = terrain_dim
 
-        # 1. 计算 Patch 数量: (200 - 16) // 8 + 1 = 24
+        # 1. Compute patch count: (200 - 16) // 8 + 1 = 24
         self.patch_num = (input_len - patch_len) // stride + 1
 
-        # 2. Patch 局部特征映射 [input_dim * patch_len] -> [d_model]
+        # 2. Map patch-local features [input_dim * patch_len] -> [d_model]
         self.patch_embedding = nn.Linear(input_dim * patch_len, d_model)
         self.pos_encoder = PositionalEncoding(d_model=d_model)
 
-        # 3. Transformer 编码器主干
+        # 3. Transformer encoder backbone
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=n_heads,
@@ -79,7 +79,7 @@ class PatchTSTTerrainRegression(nn.Module):
         self.feature_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-        # 4. 地形回归输出头 (汇聚各 Patch 特征映射到目标维度)
+        # 4. Terrain regression head (aggregate patch features into target dimensions)
         self.terrain_head = nn.Sequential(
             nn.Flatten(start_dim=1),
             nn.Linear(self.patch_num * d_model, 256),
@@ -98,10 +98,10 @@ class PatchTSTTerrainRegression(nn.Module):
                     nn.init.zeros_(m.bias)
 
     def forward(self, x):
-        """输入:
+        """Input:
 
-            x: [B, 200, 42] (IMU 序列)
-        输出:
+            x: [B, 200, 42] (IMU sequence)
+        Output:
             dict: {"terrain": [B, 30, 6]}
         """
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
@@ -110,7 +110,7 @@ class PatchTSTTerrainRegression(nn.Module):
 
         B, T, D = x.shape
 
-        # A. 时序切分 Patch: [B, T, D] -> [B, patch_num, patch_len * D]
+        # A. Extract temporal patches: [B, T, D] -> [B, patch_num, patch_len * D]
         patches = (
             x.unfold(dimension=1, size=self.patch_len, step=self.stride)
             .permute(0, 1, 3, 2)
@@ -118,16 +118,16 @@ class PatchTSTTerrainRegression(nn.Module):
             .view(B, self.patch_num, self.patch_len * D)
         )
 
-        # B. 线性嵌入与位置编码
+        # B. Linear embedding and positional encoding
         h = self.patch_embedding(patches)  # [B, patch_num, d_model]
         h = self.pos_encoder(h)
 
-        # C. Transformer 编码交互
+        # C. Transformer encoder processing
         feature = self.encoder(h)
         feature = self.feature_norm(feature)
         feature = self.dropout(feature)
 
-        # D. 回归未来地形参数 [B, pred_len, terrain_dim]
+        # D. Regress future terrain parameters [B, pred_len, terrain_dim]
         terrain = self.terrain_head(feature)
         terrain = terrain.view(B, self.pred_len, self.terrain_dim)
 
@@ -138,7 +138,7 @@ class PatchTSTTerrainRegression(nn.Module):
 # Test
 # =====================================================
 if __name__ == "__main__":
-    # 与 build_model("patchtst", cfg) 传参完全一致
+    # Arguments match build_model("patchtst", cfg)
     model = PatchTSTTerrainRegression(
         input_dim=42,
         input_len=200,
@@ -150,6 +150,6 @@ if __name__ == "__main__":
     x = torch.randn(8, 200, 42)
     out = model(x)
 
-    print("PatchTST 验证成功:")
+    print("PatchTST validation passed:")
     print("terrain shape:", out["terrain"].shape)  # torch.Size([8, 30, 6])
-    assert out["terrain"].shape == (8, 30, 6), "输出维度不符合预期！"
+    assert out["terrain"].shape == (8, 30, 6), "Unexpected output shape!"
