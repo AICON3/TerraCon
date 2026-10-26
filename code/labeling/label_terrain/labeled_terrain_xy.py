@@ -166,13 +166,13 @@ y:50, 75, 55, 85, 65, 45, 95, 55, 85, 65, 45, 95, 75, 85, 65, 45, 95, 75, 55, 65
 
 def parse_number_list(s):
     """
-    从字符串中提取数字。
+    Extract numeric values from text.
     Supported:
-        英文逗号
-        中文逗号
-        顿号
-        小数
-        负数
+        ASCII commas
+        Chinese commas
+        enumeration commas
+        decimal values
+        negative values
     """
     nums = re.findall(r"-?\d+(?:\.\d+)?", s)
 
@@ -191,7 +191,7 @@ def parse_number_list(s):
 
 def build_xy_label_dict():
     """
-    解析 LABEL_TEXT，生成 LABELS。
+    Parse LABEL_TEXT to generate LABELS.
     """
     labels = {}
 
@@ -413,7 +413,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
     """
-    检测 label == label_value 的起始点。
+    Detect the start of a label == label_value run.
     A consecutive run of label == 3 counts as one event.
     """
     if label_col not in df.columns:
@@ -450,7 +450,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 def collect_xy_terrain_events(df):
     """
-    XY1~XY6 贴标事件规则：
+    Event-labeling rules for XY1–XY6:
 
     Event 1:
         First l_label == 3
@@ -482,10 +482,10 @@ def collect_xy_terrain_events(df):
     )
 
     if len(l3_events) < 2:
-        raise RuntimeError("l_label == 3 has fewer than two start events; cannot apply XY 贴标rules.")
+        raise RuntimeError("l_label == 3 has fewer than two start events; cannot apply XY labeling rules.")
 
     if len(r3_events) < 1:
-        raise RuntimeError("r_label == 3 has fewer than one start event; cannot apply XY 贴标rules.")
+        raise RuntimeError("r_label == 3 has fewer than one start event; cannot apply XY labeling rules.")
 
     events = []
 
@@ -505,7 +505,7 @@ def collect_xy_terrain_events(df):
     ]
 
     if len(r3_after_second) == 0:
-        raise RuntimeError("Second l_label == 3 后没有找到 r_label == 3。")
+        raise RuntimeError("No r_label == 3 was found after the second l_label == 3.")
 
     third_event = dict(r3_after_second[0])
     third_event["event_rule"] = "third_r_label_3_after_second_l3"
@@ -540,10 +540,10 @@ def collect_xy_terrain_events(df):
 
 def get_xy_sequences(direction):
     """
-    根据方向获取你给的标签序列。
+    Get provided label sequences for the selected direction.
     """
     if direction not in LABELS:
-        raise ValueError(f"No label sequence found for direction {direction} 的标签。请检查 LABEL_TEXT 是否包含该方向。")
+        raise ValueError(f"No label sequence found for direction {direction}. Check that LABEL_TEXT includes this direction.")
 
     item = LABELS[direction]
 
@@ -570,7 +570,7 @@ def get_xy_sequences(direction):
 
 def get_sequence_lengths(sequences):
     """
-    获取你给的label count。
+    Get the provided label count.
     """
     return {
         col: len(seq)
@@ -580,7 +580,7 @@ def get_sequence_lengths(sequences):
 
 def check_event_label_count_match(events, sequences):
     """
-    检查event count和你给的label count是否一致。
+    Check that event count equals the provided label count.
     """
     event_count = len(events)
 
@@ -594,8 +594,8 @@ def check_event_label_count_match(events, sequences):
 def print_count_summary(direction, sequences, events, l3_events, r3_events):
     """
     Print a concise count summary:
-        原始label count = 你在 LABEL_TEXT 里给的标签序列数量
-        事件label count = 根据 l_label/r_label 检测到的贴标event count
+        Original label count = number of values supplied in LABEL_TEXT
+        Event label count = number of labeling events detected from l_label/r_label
     """
     seq_lens = get_sequence_lengths(sequences)
 
@@ -635,12 +635,12 @@ def print_count_summary(direction, sequences, events, l3_events, r3_events):
 
 def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_label=0):
     """
-    第一个事件之前为 0。
-    第 k 个事件到第 k+1 个事件之前贴 terrain_sequence[k]。
+    Set labels to 0 before the first event.
+    Assign terrain_sequence[k] from event k until event k+1.
     """
     if len(events) != len(terrain_sequence):
         raise ValueError(
-            f"{output_col}: Event count {len(events)} 和label count {len(terrain_sequence)} do not match."
+            f"{output_col}: Event count {len(events)} and label count {len(terrain_sequence)} do not match."
         )
 
     n = len(df)
@@ -669,7 +669,7 @@ def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_lab
 
 def force_zero_from_last_right_label3(df, output_cols):
     """
-    从最后一个 r_label == 3 起始事件开始强制置 0。
+    Force labels to 0 from the final r_label == 3 start event.
     """
     r3_events = detect_label_value_rising_edges(
         df=df,
@@ -781,7 +781,7 @@ def process_one_file(input_file):
         seq_lens = get_sequence_lengths(sequences)
 
         raise RuntimeError(
-            f"{direction} event count和你给的label countdo not match.\n"
+            f"{direction} Event count and the provided label count do not match.\n"
             f"Event count: {len(events)}\n"
             f"Original / provided label count: {seq_lens}"
         )
@@ -905,7 +905,7 @@ def main():
 
             print(
                 f"{r['direction']} | "
-                f"原始Label count: "
+                f"Original label count: "
                 f"x_single={seq_lens['terrain_x_single_label']}, "
                 f"y_single={seq_lens['terrain_y_single_label']}, "
                 f"x_same={seq_lens['terrain_x_same_label']}, "
