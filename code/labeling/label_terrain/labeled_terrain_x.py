@@ -250,8 +250,8 @@ def detect_direction_from_filename(input_file):
     """
     Determine direction from the filename.
 
-    文件名中包含 x_fwd -> fwd
-    文件名中包含 x_bwd -> bwd
+    Filename containing x_fwd -> fwd
+    Filename containing x_bwd -> bwd
     """
     basename = os.path.basename(input_file).lower()
 
@@ -262,7 +262,7 @@ def detect_direction_from_filename(input_file):
         return "bwd"
 
     raise ValueError(
-        "Cannot determine direction from filename; ensure it contains x_fwd 或 x_bwd：\n"
+        "Cannot determine direction from filename; ensure it contains x_fwd or x_bwd：\n"
         f"{input_file}"
     )
 
@@ -435,7 +435,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 def collect_fwd_terrain_events(df):
     """
-    x_fwd 地形事件收集规则：
+    x_fwd terrain-event collection rules:
 
     Event 1:
         First l_label == 3
@@ -473,7 +473,7 @@ def collect_fwd_terrain_events(df):
 
     if len(l3_events) < 2:
         raise RuntimeError(
-            "x_fwd: l_label == 3 的起始事件少于 2 个，无法执行 fwd 规则。"
+            "x_fwd: l_label == 3 has fewer than two start events; cannot apply fwd rules."
         )
 
     first_event = dict(l3_events[0])
@@ -493,8 +493,8 @@ def collect_fwd_terrain_events(df):
 
     if len(r3_after_second) == 0:
         raise RuntimeError(
-            "x_fwd: 已经找到Second l_label == 3，"
-            "但其后没有找到 r_label == 3，无法执行第 3 次贴标。"
+            "x_fwd: The second l_label == 3 was found, "
+            "but no subsequent r_label == 3 was found; cannot assign the third label."
         )
 
     third_event = dict(r3_after_second[0])
@@ -534,16 +534,16 @@ def collect_fwd_terrain_events(df):
 
 def collect_bwd_terrain_events(df):
     """
-    x_bwd 地形事件收集规则：
+    x_bwd terrain-event collection rules:
 
     Event 1:
-        第一个 r_label == 3
+        First r_label == 3
 
     Event 2:
-        第二个 r_label == 3
+        Second r_label == 3
 
     Event 3:
-        第二个 r_label == 3 之后，First l_label == 3
+        First l_label == 3 after the second r_label == 3
 
     Event 4 and later:
         After the third event: l_label == 3 or r_label == 3
@@ -572,7 +572,7 @@ def collect_bwd_terrain_events(df):
 
     if len(r3_events) < 2:
         raise RuntimeError(
-            "x_bwd: r_label == 3 的起始事件少于 2 个，无法执行 bwd 规则。"
+            "x_bwd: r_label == 3 has fewer than two start events; cannot apply bwd rules."
         )
 
     first_event = dict(r3_events[0])
@@ -592,8 +592,8 @@ def collect_bwd_terrain_events(df):
 
     if len(l3_after_second) == 0:
         raise RuntimeError(
-            "x_bwd: 已经找到第二个 r_label == 3，"
-            "但其后没有找到 l_label == 3，无法执行第 3 次贴标。"
+            "x_bwd: The second r_label == 3 was found, "
+            "but no subsequent l_label == 3 was found; cannot assign the third label."
         )
 
     third_event = dict(l3_after_second[0])
@@ -633,7 +633,7 @@ def collect_bwd_terrain_events(df):
 
 def get_events_and_sequences_by_direction(df, direction):
     """
-    根据方向 fwd/bwd 返回：
+    Return values for fwd/bwd:
         events
         l3_events
         r3_events
@@ -819,7 +819,7 @@ def apply_terrain_sequence(
 
 def force_zero_from_last_side_label3(df, output_cols, side):
     """
-    从最后一个指定侧 label == 3 的起始事件开始，
+    Starting from the final label == 3 start event on the selected side,
     Force the selected terrain label column to 0.
 
     side:
@@ -833,7 +833,7 @@ def force_zero_from_last_side_label3(df, output_cols, side):
         label_col = "r_label"
         side_name = "R"
     else:
-        raise ValueError("side 只能是 'L' 或 'R'")
+        raise ValueError("side 只能是 'L' or 'R'")
 
     if label_col not in df.columns:
         raise KeyError(f"Missing column: {label_col}")
@@ -921,7 +921,7 @@ def process_one_file(input_file):
         raise KeyError(
             "Required columns are missing from the workbook:\n"
             + "\n".join(missing)
-            + "\n\n请确认The input file must already contain gait labels."
+            + "\n\nPlease verify that the input workbook already contains gait labels."
         )
 
     (
@@ -972,13 +972,13 @@ def process_one_file(input_file):
         print_event_mapping(
             events,
             single_sequence,
-            title=f"[x_{direction} 单侧地形label mapping]",
+            title=f"[x_{direction} single-side terrain label mapping]",
         )
 
         print_event_mapping(
             events,
             double_sequence,
-            title=f"[x_{direction} 双侧地形label mapping]",
+            title=f"[x_{direction} bilateral terrain label mapping]",
         )
 
     # Assign single-side terrain labels
@@ -1037,7 +1037,7 @@ def process_one_file(input_file):
 
 def main():
     print("=" * 100)
-    print("[x_fwd / x_bwd 地形标签批处理开始]")
+    print("[x_fwd / x_bwd terrain label batch processing started]")
     print(f"Subject: {SUB_ID}")
     print(f"Input directory: {SUB_DIR}")
     print(f"Files to process: {len(INPUT_FILES)}")
