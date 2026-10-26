@@ -151,6 +151,6 @@ if __name__ == "__main__":
     dummy_x = torch.randn(2, 200, 42)
     output = model(dummy_x)
 
-    print("输出张量Architecture:", output["terrain"].shape)
+    print("Output tensor shape:", output["terrain"].shape)
     assert output["terrain"].shape == (2, 30, 6), "Output shape does not match expected experimental dimensions!"
     print("Model verification passed; ready for training.")
