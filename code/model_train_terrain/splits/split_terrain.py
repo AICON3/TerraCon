@@ -95,9 +95,9 @@ ALL_SCENES = (
 
 def get_scene(task):
     """
-    从 task 名称解析 scene。
+    Parse scene from the task name.
 
-    例如:
+    For example:
         sub_001_x_fwd
         -> x
 
@@ -119,7 +119,7 @@ def get_scene(task):
 
 def count_tasks(data):
     """
-    统计 split 中任务文件数量。
+    Count task files in a split.
     """
 
     return sum(
@@ -131,7 +131,7 @@ def count_tasks(data):
 
 def collect_scene_counts(data):
     """
-    统计一个 split 中各 scene 的任务文件数量。
+    Count task files by scene in a split.
     """
 
     counts = Counter()
@@ -153,7 +153,7 @@ def print_split_summary(
         name
 ):
     """
-    打印某个 split 的 subject / task / scene 数量。
+    Print subject/task/scene counts for a split.
     """
 
     print("\n----------------------------------------")
@@ -194,10 +194,10 @@ def save_split(
         name
 ):
     """
-    保存:
+    Save:
         train.pkl / val.pkl / test.pkl
 
-    同时保存:
+    同时Save:
         train_list.csv / val_list.csv / test_list.csv
     """
 
@@ -291,12 +291,12 @@ def save_split(
 
 def validate_dataset_structure(dataset):
     """
-    对输入 multitask_dataset_terrain.pkl 做基本检查。
+    Perform basic validation of input multitask_dataset_terrain.pkl.
 
-    主要确认:
-    1. dataset 非空
-    2. 至少存在一个 subject / task
-    3. terrain 回归标签是否已经进入 pkl
+    Verify:
+    1. The dataset is nonempty
+    2. At least one subject/task exists
+    3. Terrain regression labels are included in the pkl
     """
 
     if not isinstance(
@@ -427,19 +427,19 @@ def validate_dataset_structure(dataset):
 
 def subject_split(dataset):
     """
-    跨受试者划分。
+    Split across subjects.
 
     Train:
         sub_001 ~ sub_034
-        全部 scene
+        all scenes
 
     Val:
         sub_035 ~ sub_041
-        全部 scene
+        all scenes
 
     Test:
         sub_042 ~ sub_048
-        全部 scene
+        all scenes
     """
 
     train = {}
@@ -485,8 +485,8 @@ def subject_split(dataset):
 
 def subject_scene_split(dataset):
     """
-    同时测试:
-        新受试者 + 新三维场景
+    Evaluate both:
+        unseen subjects + unseen 3D scenes
 
     Train:
         sub_001 ~ sub_034
@@ -500,8 +500,8 @@ def subject_scene_split(dataset):
         sub_042 ~ sub_048
         XYZ_SCENES
 
-    注意:
-        Test 同时换 subject 和 scene。
+    Note:
+        Test changes both subject and scene.
     """
 
     train = {}
@@ -595,14 +595,14 @@ def scene_split_generator(
         seed=2026
 ):
     """
-    通用 scene 划分函数。
+    General scene-splitting function.
 
-    特点:
-        - 所有受试者都可以进入 train / val / test
-        - scene 决定属于 train 还是 test
-        - val 从 train scenes 中按每个 subject 随机抽取一定比例
+    Characteristics:
+        - All subjects may appear in train/val/test
+        - Scene determines train/test membership
+        - Validation samples are drawn randomly from training scenes per subject
 
-    这样验证集仍来自“已见 scene”分布。
+    Thus validation remains within the observed-scene distribution.
     """
 
     train = {}
@@ -738,7 +738,7 @@ def scene_split_generator(
 
 def scene_split_1(dataset):
     """
-    单方向/基础地形 -> 组合地形
+    Single-direction/basic terrain -> combined terrain
 
     Train scenes:
         walk
@@ -748,14 +748,14 @@ def scene_split_1(dataset):
         z1-z4
 
     Val:
-        从上述 train scenes 中按每个 subject 抽 10%
+        Sample 10% of the training scenes per subject
 
     Test scenes:
         xy1-xy6
         xyz1-xyz3
 
-    目的:
-        测试从基础/单方向约束泛化到二维和三维组合约束。
+    Purpose:
+        Test generalization from basic/single-direction constraints to 2D/3D combinations.
     """
 
     train_scenes = (
@@ -790,7 +790,7 @@ def scene_split_1(dataset):
 
 def scene_split_2(dataset):
     """
-    基础场景 + 部分 XY -> 新 XY + XYZ
+    Basic scenes + some XY -> unseen XY + XYZ
 
     Train scenes:
         walk
@@ -803,7 +803,7 @@ def scene_split_2(dataset):
         xy3
 
     Val:
-        从上述 train scenes 中抽 10%
+        Sample 10% from the training scenes above
 
     Test scenes:
         xy4
@@ -813,9 +813,9 @@ def scene_split_2(dataset):
         xyz2
         xyz3
 
-    目的:
-        测试学习部分二维组合后，
-        对未见二维组合和三维组合的泛化。
+    Purpose:
+        After learning some 2D combinations, test
+        generalization to unseen 2D and 3D combinations.
     """
 
     train_scenes = (
@@ -860,7 +860,7 @@ def scene_split_2(dataset):
 
 def scene_split_3(dataset):
     """
-    二维组合内部泛化。
+    Generalization within 2D combinations.
 
     Train scenes:
         walk
@@ -873,17 +873,17 @@ def scene_split_3(dataset):
         xy3
 
     Val:
-        从上述 train scenes 中抽 10%
+        Sample 10% from the training scenes above
 
     Test scenes:
         xy4
         xy5
         xy6
 
-    XYZ 不参与该 split 的 test。
+    XYZ is excluded from test in this split.
 
-    目的:
-        专门检查模型是否学习了 XY 组合规律。
+    Purpose:
+        Assess whether the model learned XY combination patterns.
     """
 
     train_scenes = (
@@ -924,7 +924,7 @@ def scene_split_3(dataset):
 
 def scene_split_4(dataset):
     """
-    一维 + 全部二维 -> 三维
+    1D + all 2D -> 3D
 
     Train scenes:
         walk
@@ -935,17 +935,17 @@ def scene_split_4(dataset):
         xy1-xy6
 
     Val:
-        从上述 train scenes 中抽 10%
+        Sample 10% from the training scenes above
 
     Test scenes:
         xyz1
         xyz2
         xyz3
 
-    目的:
-        作为主要 terrain scene generalization 实验，
-        检查模型能否从一维和二维约束
-        泛化到未见三维组合约束。
+    Purpose:
+        As the primary terrain-scene generalization experiment,
+        test whether the model generalizes from 1D/2D constraints
+        to unseen 3D combined constraints.
     """
 
     train_scenes = (
@@ -985,20 +985,20 @@ def subject_5fold_split(
     """
     Subject-level 5-fold。
 
-    每个 fold:
+    Each fold:
         test subjects:
-            KFold 当前 test fold
+            KFold current test fold
 
         trainval subjects:
-            其余 subjects
+            remaining subjects
 
         val subjects:
-            trainval 中随机约 15%
+            approximately 15% randomly sampled from trainval
 
         train subjects:
-            trainval 剩余 subjects
+            remaining trainval subjects
 
-    保证同一 subject 不同时出现在 train/val/test。
+    Ensure each subject belongs to only one of train/val/test.
     """
 
     subjects = np.array(
@@ -1197,7 +1197,7 @@ def save_three_way_split(
         output_root
 ):
     """
-    执行一个 train/val/test split 并保存。
+    Create and save a train/val/test split.
     """
 
     print(
@@ -1279,7 +1279,7 @@ def main():
 
 
     # -------------------------
-    # 检查输入文件
+    # Validate input files
     # -------------------------
 
     if not os.path.exists(
@@ -1298,7 +1298,7 @@ def main():
 
 
     # -------------------------
-    # 读取 dataset
+    # Load the dataset
     # -------------------------
 
     with open(
@@ -1327,7 +1327,7 @@ def main():
 
 
     # -------------------------
-    # 检查 dataset 内容
+    # Validate dataset contents
     # -------------------------
 
     validate_dataset_structure(
@@ -1336,7 +1336,7 @@ def main():
 
 
     # -------------------------
-    # 输出目录
+    # Output directory
     # -------------------------
 
     os.makedirs(
