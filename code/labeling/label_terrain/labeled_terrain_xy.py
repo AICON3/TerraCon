@@ -300,7 +300,7 @@ def read_excel_auto_sheet(input_file):
 
 def detect_xy_direction_from_filename(input_file):
     """
-    从文件名判断 xy1_fwd ~ xy6_bwd。
+    Determine from filename: xy1_fwd ~ xy6_bwd。
     """
     basename = os.path.basename(input_file).lower()
 
@@ -318,7 +318,7 @@ def detect_xy_direction_from_filename(input_file):
             return p
 
     raise ValueError(
-        "无法从文件名判断方向，请确保文件名包含 xy1_fwd ~ xy6_bwd。\n"
+        "Cannot determine direction from filename; ensure it contains xy1_fwd ~ xy6_bwd。\n"
         f"Current file: {input_file}"
     )
 
@@ -370,7 +370,7 @@ def build_output_file(input_file):
 def save_excel_safely(df, output_file, sheet_name="data"):
     """
     Save the Excel workbook safely.
-    如果目标文件被打开，自动另存为 _v2、_v3 ...
+    If the target file is open, save using _v2, _v3, etc.
     """
     out_dir = os.path.dirname(output_file)
 
@@ -600,7 +600,7 @@ def print_count_summary(direction, sequences, events, l3_events, r3_events):
     seq_lens = get_sequence_lengths(sequences)
 
     print("=" * 100)
-    print(f"[数量结果] {direction}")
+    print(f"[Count results] {direction}")
 
     print(
         f"Original / provided label count: "
@@ -640,7 +640,7 @@ def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_lab
     """
     if len(events) != len(terrain_sequence):
         raise ValueError(
-            f"{output_col}: 事件数量 {len(events)} 和标签数量 {len(terrain_sequence)} 不一致。"
+            f"{output_col}: Event count {len(events)} 和标签数量 {len(terrain_sequence)} do not match."
         )
 
     n = len(df)
@@ -781,7 +781,7 @@ def process_one_file(input_file):
         seq_lens = get_sequence_lengths(sequences)
 
         raise RuntimeError(
-            f"{direction} 事件数量和你给的标签数量不一致。\n"
+            f"{direction} 事件数量和你给的标签数量do not match.\n"
             f"Event count: {len(events)}\n"
             f"Original / provided label count: {seq_lens}"
         )
@@ -852,12 +852,12 @@ def main():
             failed_files.append(
                 {
                     "file": input_file,
-                    "reason": "文件不存在",
+                    "reason": "File not found",
                 }
             )
 
             print("=" * 100)
-            print("[Skipped] 文件不存在")
+            print("[Skipped] File not found")
             print(input_file)
             print("=" * 100)
 
@@ -883,7 +883,7 @@ def main():
             )
 
             print("=" * 100)
-            print("[Failed] 当前文件处理失败，已跳过")
+            print("[Failed] Processing failed for this file; skipping")
             print(f"File: {input_file}")
             print(f"Error type: {type(e).__name__}")
             print(f"Error: {e}")
@@ -899,7 +899,7 @@ def main():
     print("#" * 100)
 
     if results:
-        print("\n[成功生成文件]")
+        print("\n[Successfully generated files]")
         for r in results:
             seq_lens = r["sequence_lengths"]
 
@@ -911,11 +911,11 @@ def main():
                 f"x_same={seq_lens['terrain_x_same_label']}, "
                 f"y_same={seq_lens['terrain_y_same_label']} | "
                 f"Labeled event count={r['event_count']} | "
-                f"输出={r['output_file']}"
+                f"Output={r['output_file']}"
             )
 
     if failed_files:
-        print("\n[失败文件]")
+        print("\n[Failed files]")
         for item in failed_files:
             print(f"File: {item['file']}")
             print(f"Reason: {item['reason']}")
