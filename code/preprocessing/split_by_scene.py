@@ -57,7 +57,7 @@ import pandas as pd
 from openpyxl import load_workbook
 
 
-BASE_DIR = Path("/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721")
+BASE_DIR = Path("/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721")
 STITCHED_ROOT = BASE_DIR / "original_data"
 TIME_ROOT = BASE_DIR / "device_export"
 OUTPUT_ROOT = BASE_DIR / "original_devide"
@@ -72,7 +72,7 @@ SENSOR_MAP = {
     "R3": "R_foot",
 }
 
-SKIP_SHEETS = {"文件信息", "未解析字节", "info", "Info", "INFO"}
+SKIP_SHEETS = {"File Info", "Unparsed Bytes", "info", "Info", "INFO"}
 
 OUTPUT_COLUMNS = [
     "sample_index",
@@ -98,35 +98,35 @@ OUTPUT_COLUMNS = [
 COLUMN_CANDIDATES = {
     "timestamp": [
         "timestamp",
-        "时间戳",
-        "时间戳原始字符串",
+        "Timestamp",
+        "Raw timestamp string",
         "timestamp_aligned",
         "aligned_timestamp",
         "timestamp_device",
     ],
     "timestamp_device": [
         "timestamp_device",
-        "设备时间戳",
-        "时间戳原始字符串",
-        "时间戳",
+        "Device timestamp",
+        "Raw timestamp string",
+        "Timestamp",
         "timestamp",
     ],
-    "accel_x_g": ["accel_x_g", "X轴加速度(g)", "X轴加速度（g）", "加速度X(g)"],
-    "accel_y_g": ["accel_y_g", "Y轴加速度(g)", "Y轴加速度（g）", "加速度Y(g)"],
-    "accel_z_g": ["accel_z_g", "Z轴加速度(g)", "Z轴加速度（g）", "加速度Z(g)"],
+    "accel_x_g": ["accel_x_g", "X acceleration (g)", "X acceleration (g)", "X acceleration (g)"],
+    "accel_y_g": ["accel_y_g", "Y acceleration (g)", "Y acceleration (g)", "Y acceleration (g)"],
+    "accel_z_g": ["accel_z_g", "Z acceleration (g)", "Z acceleration (g)", "Z acceleration (g)"],
     "gyro_x_deg_s": [
-        "gyro_x_deg_s", "X轴角速度(deg/s)", "X轴角速度（deg/s）", "角速度X(deg/s)"
+        "gyro_x_deg_s", "X angular velocity (deg/s)", "X angular velocity (deg/s)", "X angular velocity (deg/s)"
     ],
     "gyro_y_deg_s": [
-        "gyro_y_deg_s", "Y轴角速度(deg/s)", "Y轴角速度（deg/s）", "角速度Y(deg/s)"
+        "gyro_y_deg_s", "Y angular velocity (deg/s)", "Y angular velocity (deg/s)", "Y angular velocity (deg/s)"
     ],
     "gyro_z_deg_s": [
-        "gyro_z_deg_s", "Z轴角速度(deg/s)", "Z轴角速度（deg/s）", "角速度Z(deg/s)"
+        "gyro_z_deg_s", "Z angular velocity (deg/s)", "Z angular velocity (deg/s)", "Z angular velocity (deg/s)"
     ],
-    "angle_x_deg": ["angle_x_deg", "X轴角度(deg)", "X轴角度（deg）", "角度X(deg)"],
-    "angle_y_deg": ["angle_y_deg", "Y轴角度(deg)", "Y轴角度（deg）", "角度Y(deg)"],
-    "angle_z_deg": ["angle_z_deg", "Z轴角度(deg)", "Z轴角度（deg）", "角度Z(deg)"],
-    "source_file": ["source_file", "源文件", "原始文件"],
+    "angle_x_deg": ["angle_x_deg", "X angle (deg)", "X angle (deg)", "X angle (deg)"],
+    "angle_y_deg": ["angle_y_deg", "Y angle (deg)", "Y angle (deg)", "Y angle (deg)"],
+    "angle_z_deg": ["angle_z_deg", "Z angle (deg)", "Z angle (deg)", "Z angle (deg)"],
+    "source_file": ["source_file", "Source file", "Original file"],
     "time_offset_seconds": ["time_offset_seconds"],
     "time_alignment_method": ["time_alignment_method"],
     "time_alignment_confidence": ["time_alignment_confidence"],
@@ -151,23 +151,23 @@ def find_scene_time_file(subject):
     subject_dir = TIME_ROOT / subject
 
     exact_candidates = [
-        subject_dir / f"场景时间记录表_sub{subject_num}.xlsm",
-        subject_dir / f"场景时间记录表_{subject}.xlsm",
-        subject_dir / f"场景时间记录表_sub{subject_num}.xlsx",
-        subject_dir / f"场景时间记录表_{subject}.xlsx",
+        subject_dir / f"Scene timing table_sub{subject_num}.xlsm",
+        subject_dir / f"Scene timing table_{subject}.xlsm",
+        subject_dir / f"Scene timing table_sub{subject_num}.xlsx",
+        subject_dir / f"Scene timing table_{subject}.xlsx",
     ]
 
     for p in exact_candidates:
         if p.exists():
             return p
 
-    candidates = sorted(subject_dir.glob("场景时间记录表*.xlsm"))
+    candidates = sorted(subject_dir.glob("Scene timing table*.xlsm"))
     if not candidates:
-        candidates = sorted(subject_dir.glob("场景时间记录表*.xlsx"))
+        candidates = sorted(subject_dir.glob("Scene timing table*.xlsx"))
 
     if not candidates:
         raise FileNotFoundError(
-            f"Scene timing sheet not found: {subject_dir}/场景时间记录表*.xlsm"
+            f"Scene timing sheet not found: {subject_dir}/Scene timing table*.xlsm"
         )
 
     return candidates[0]
@@ -187,11 +187,11 @@ def read_scene_table(filepath):
 
         for i, row in enumerate(rows[:20]):
             values = [str(v).strip() if v is not None else "" for v in row]
-            if "场景" in values and "开始时间" in values and "结束时间" in values:
+            if "Scene" in values and "Start time" in values and "End time" in values:
                 header_row_idx = i
-                scene_col = values.index("场景")
-                start_col = values.index("开始时间")
-                end_col = values.index("结束时间")
+                scene_col = values.index("Scene")
+                start_col = values.index("Start time")
+                end_col = values.index("End time")
                 break
 
         if header_row_idx is None:
