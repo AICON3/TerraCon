@@ -4,14 +4,14 @@ import torch.nn.functional as F
 
 
 def FFT_for_Period(x, k=5):
-    """提取时序主要周期及其对应的频率幅值权重
+    """Extract dominant sequence periods and their spectral-amplitude weights
 
     x: [B, T, C]
 
-    返回:
-        period:        list[int]，长度 k，各主要分量的周期长度
-        period_weight: [B, k]，各周期对应频率的幅值，
-                       供后续 softmax 自适应加权融合使用
+    Returns:
+        period:        list[int], length k, containing periods of dominant components
+        period_weight: [B, k], spectral amplitudes corresponding to each period,
+                       Used later for adaptive softmax-weighted fusion
     """
     xf = torch.fft.rfft(x, dim=1)
     amplitude = torch.abs(xf).mean(dim=-1)      # [B, T//2 + 1]
@@ -19,7 +19,7 @@ def FFT_for_Period(x, k=5):
     frequency = amplitude.mean(dim=0)           # [T//2 + 1]
     # Clone to avoid in-place modification of the autograd graph
     frequency = frequency.clone()
-    frequency[0] = 0.0                          # 压制直流分量
+    frequency[0] = 0.0                          # Suppress the DC component
 
     # Ensure k does not exceed the number of frequency bins
     k = max(min(k, frequency.size(0) - 1), 1)
@@ -109,15 +109,15 @@ class TimesBlock(nn.Module):
 
 
 class TimesNetMultiTask(nn.Module):
-    """TimesNet 多任务模型 (角度回归 + 步态分类)
+    """TimesNet multitask model (angle regression and gait classification)
 
-    结构:
+    Architecture:
         Linear Embedding -> TimesBlock x num_layers -> LayerNorm
-        -> 时序长度投影 -> {angle_head, gait_head}
+        -> temporal length projection -> {angle_head, gait_head}
 
-    输入:
-        x: [B, input_len, input_dim]   (默认 [B, 200, 42])
-    输出:
+    Input:
+        x: [B, input_len, input_dim]   (default [B, 200, 42])
+    Output:
         {"angle": [B, pred_len, angle_dim],
          "gait":  [B, pred_len, gait_dim]}
     """
@@ -179,9 +179,9 @@ class TimesNetMultiTask(nn.Module):
         )
 
     def forward(self, x, **kwargs):
-        """输入:
+        """Input:
             x: [B, input_len, input_dim]
-        输出:
+        Output:
             {"angle": [B, pred_len, angle_dim],
              "gait":  [B, pred_len, gait_dim]}
         """
@@ -196,7 +196,7 @@ class TimesNetMultiTask(nn.Module):
 
         if T != self.input_len:
             raise ValueError(
-                f"输入序列长度 {T} 与模型设定 input_len {self.input_len} 不一致"
+                f"Input length {T} differs from configured input_len {self.input_len}"
             )
 
         # A. Linear embedding
@@ -236,4 +236,4 @@ if __name__ == "__main__":
     print("gait:", out["gait"].shape)
     assert out["angle"].shape == (8, 30, 8)
     assert out["gait"].shape == (8, 30, 2)
-    print("TimesNet 验证通过")
+    print("TimesNet validation passed")
