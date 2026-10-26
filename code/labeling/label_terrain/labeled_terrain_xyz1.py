@@ -315,13 +315,13 @@ def collect_xyz1_terrain_events(df):
     Initialize with 0.
 
     Event 1:
-        第一个 l_label == 3
+        First l_label == 3
 
     Event 2:
-        第二个 l_label == 3
+        Second l_label == 3
 
     Event 3:
-        第二个 l_label == 3 后第一个 r_label == 3
+        Second l_label == 3 后第一个 r_label == 3
 
     Event 4 and later:
         After the third event,
@@ -379,7 +379,7 @@ def collect_xyz1_terrain_events(df):
 
     if len(r3_after_second) == 0:
         raise RuntimeError(
-            "第二个 l_label == 3 后没有找到 r_label == 3。"
+            "Second l_label == 3 后没有找到 r_label == 3。"
         )
 
     third_event = dict(r3_after_second[0])
