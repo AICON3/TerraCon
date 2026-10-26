@@ -371,7 +371,7 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
         mask = (std["timestamp"] >= start) & (std["timestamp"] < end)
         part = std.loc[mask].copy()
 
-        # 每个场景重新从 1 编号
+        # Restart numbering at 1 for each scene
         part.insert(0, "sample_index", range(1, len(part) + 1))
 
         part["timestamp"] = format_timestamp_milliseconds(part["timestamp"])
@@ -386,7 +386,7 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
 
         out_file = out_dir / f"{subject}_imu_{body_name}.xlsx"
 
-        # 直接覆盖，不再检查“是否已存在”
+        # Overwrite directly without checking whether the output already exists
         with pd.ExcelWriter(out_file, engine="openpyxl") as writer:
             part.to_excel(writer, sheet_name="imu", index=False)
 
@@ -394,9 +394,9 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
             ws.freeze_panes = "A2"
             ws.auto_filter.ref = ws.dimensions
 
-            # 时间列前面已经格式化成完整毫秒字符串；
-            # 在 Excel 中再明确设为文本，后续直接删行 + Ctrl+S 保存，
-            # 不会自动变成 08:08.5 之类的格式。
+            # The time column was already formatted as a full millisecond-precision string;
+            # explicitly mark it as text in Excel so deleting rows and saving with Ctrl+S
+            # will not auto-convert it to shortened displays such as 08:08.5.
             header_map = {cell.value: cell.column for cell in ws[1]}
 
             for col_name in ("timestamp", "timestamp_device"):
