@@ -8,26 +8,26 @@
 #   Angle
 #   Gait
 #
-# 本文件由 evaluation/evaluate_angel_gait.py 修改而来，
-# 目的是让 subject 5-fold 训练的产物可以直接评估。
+# This file was adapted from evaluation/evaluate_angel_gait.py
+# to evaluate subject five-fold training outputs directly.
 #
-# 原脚本的路径约定（一层 split）:
+# Original path convention (one split layer):
 #   data  : splits/<split_name>/test.pkl
 #   ckpt  : train/checkpoints/<model>/<split_name>_angle_gait_<model>/best_model.pth
 #
-# 5 折数据的实际布局（多一层 fold）:
+# Five-fold data layout (additional fold layer):
 #   data  : splits/<fold_root>/<fold>/test.pkl
-#           例如 splits/subject_5fold_split/fold1/test.pkl
+#           Example: splits/subject_5fold_split/fold1/test.pkl
 #   ckpt  : train/checkpoints/<model>/<fold>/best_model.pth
-#           例如 train/checkpoints/GPT4TS/fold1/best_model.pth
+#           Example: train/checkpoints/GPT4TS/fold1/best_model.pth
 #
-# 因此这里把「数据路径」与「权重目录名」拆成两个独立参数：
-#   --fold_root   只影响 test.pkl 路径（默认 subject_5fold_split）
-#   --fold(s)     折名，默认 fold1 ... fold5
-#   --ckpt_style  权重目录命名方式：fold / experiment / auto
+# Therefore dataset path and checkpoint directory name are configured independently:
+#   --fold_root   affects the test.pkl path only (default subject_5fold_split)
+#   --fold(s)     fold names, default fold1 ... fold5
+#   --ckpt_style  checkpoint naming convention: fold / experiment / auto
 #
-# 评估指标与输出文件与 evaluate_angel_gait.py 完全一致，
-# 另外增加跨折 mean/std 汇总。
+# Evaluation metrics and outputs match evaluate_angel_gait.py,
+# with additional cross-fold mean/std summaries.
 ############################################################
 
 
@@ -73,7 +73,7 @@ from scipy.stats import pearsonr
 ############################################################
 
 
-# 与 evaluate_angel_gait.py 保持一致的远端工程根目录
+# Remote project root consistent with evaluate_angel_gait.py
 
 DEFAULT_BASE_DIR = (
 
@@ -89,7 +89,7 @@ DEFAULT_BASE_DIR = (
 BASE_DIR = DEFAULT_BASE_DIR
 
 
-# 脚本自身所在目录，用于在本机直接运行时定位 datasets/ 与 models/
+# Script directory for locating datasets/ and models/ when running locally
 
 CURRENT_DIR = os.path.dirname(
 
@@ -115,10 +115,10 @@ torch.multiprocessing.set_sharing_strategy(
 ############################################################
 # Import path helper
 #
-# 远端: BASE_DIR/datasets, BASE_DIR/models
-# 本机: <工程目录>/datasets, <工程目录>/models
+# Remote: BASE_DIR/datasets, BASE_DIR/models
+# Local: <project directory>/datasets, <project directory>/models
 #
-# 两个根目录都加入 sys.path，缺失的路径不影响运行。
+# Both roots are added to sys.path; missing paths are ignored.
 ############################################################
 
 
@@ -305,8 +305,8 @@ SUMMARY_METRICS = [
 ############################################################
 # Model Loader
 #
-# 与 evaluate_angel_gait.py 完全一致，
-# 保证同一 checkpoint 得到与单 split 评估相同的模型结构。
+# Consistent with evaluate_angel_gait.py,
+# so a given checkpoint uses the same model architecture as in single-split evaluation.
 ############################################################
 
 
@@ -501,15 +501,15 @@ def candidate_ckpt_names(
 
 ):
     """
-    返回候补的权重目录名，顺序即优先级。
+    Return candidate checkpoint directory names in priority order.
 
     fold       : fold1
     experiment : subject_5fold_split_fold1_angle_gait_GPT4TS
                  fold1_angle_gait_GPT4TS
-    auto       : fold 优先，其次 experiment
+    auto       : prefer fold, then experiment
 
-    这里以 fold 优先，是因为 5 折训练脚本的
-    checkpoints/<model>/<args.name> 约定中 args.name 直接取 foldN。
+    Fold naming is preferred because the five-fold training script
+    uses args.name=foldN in checkpoints/<model>/<args.name>.
     """
 
     names = []
@@ -567,8 +567,8 @@ def resolve_checkpoint(
 
 ):
     """
-    返回 (checkpoint 文件路径, 权重目录名)；
-    所有候补都不存在时返回 (None, None)。
+    Return (checkpoint path, directory name);
+    return (None, None) if no candidate exists.
     """
 
     for ckpt_name in candidate_ckpt_names(
@@ -613,7 +613,7 @@ def candidate_test_paths(
 
 ):
     """
-    5 折布局优先，同时兼容原来的平铺布局。
+    Prefer five-fold layout while supporting the original flat layout.
     """
 
     paths = []
@@ -667,7 +667,7 @@ def resolve_test_path(
 
 ):
     """
-    返回第一个存在的 test.pkl；都不存在时返回 None。
+    Return the first existing test.pkl, or None if none exists.
     """
 
     for path in candidate_test_paths(
@@ -1527,7 +1527,7 @@ def save_results(
 
 def to_builtin(value):
     """
-    把 numpy / pandas 标量转成 json 可序列化的原生类型。
+    Convert NumPy/Pandas scalars into native JSON-serializable types.
     """
 
     if isinstance(
@@ -1620,9 +1620,9 @@ def save_fold_summary(
 
 ):
     """
-    把各折的整体指标汇总成一个表 + mean/std。
+    Summarize overall metrics across folds in a table with mean/std.
 
-    fold_rows 每项:
+    Each fold_rows entry:
         fold / checkpoint / ckpt_dir / test_path / angle_MAE / ...
     """
 
@@ -2028,11 +2028,11 @@ def main():
 
         help=(
 
-            "一次评估多个模型，例如 "
+            "一次评估多个模型，Example: "
 
             "--models TCN LSTM GPT4TS；"
 
-            "传 all 表示 MODEL_MAP 中全部模型"
+            "Pass all to include every model in MODEL_MAP"
 
         )
 
@@ -2060,9 +2060,9 @@ def main():
 
         help=(
 
-            "test.pkl 的上一层目录名，"
+            "Parent directory of test.pkl,"
 
-            "默认 subject_5fold_split"
+            "default subject_5fold_split"
 
         )
 
@@ -2086,7 +2086,7 @@ def main():
 
         help=(
 
-            "权重目录命名方式：fold=fold1；"
+            "Checkpoint directory naming: fold=fold1;"
 
             "experiment=<fold_root>_<fold>_angle_gait_<model>"
 
@@ -2102,7 +2102,7 @@ def main():
 
         help=(
 
-            "工程根目录，默认使用脚本内硬编码的 "
+            "Project root, defaulting to the configured "
 
             "/mnt/newdisk/dateset_0909/code/model_train_angle_gait"
 
@@ -2116,7 +2116,7 @@ def main():
 
         default=None,
 
-        help="权重根目录，默认 <base_dir>/train/checkpoints"
+        help="Checkpoint root, default <base_dir>/train/checkpoints"
 
     )
 
@@ -2126,7 +2126,7 @@ def main():
 
         default=None,
 
-        help="结果根目录，默认 <base_dir>/evaluation_results"
+        help="Result root, default <base_dir>/evaluation_results"
 
     )
 
@@ -2138,9 +2138,9 @@ def main():
 
         help=(
 
-            "只评估单个指定的 test.pkl，"
+            "Evaluate one specified test.pkl,"
 
-            "配合 --model/--folds 使用（此时忽略 fold_root 拼装）"
+            "used with --model/--folds (ignore fold_root construction)"
 
         )
 
@@ -2162,7 +2162,7 @@ def main():
 
         action="store_true",
 
-        help="缺失 checkpoint 或 test.pkl 时直接报错，而不是跳过"
+        help="Raise instead of skipping when checkpoint or test.pkl is missing"
 
     )
 
@@ -2172,7 +2172,7 @@ def main():
 
         action="store_true",
 
-        help="已存在 summary.json 的折跳过，便于断点续跑"
+        help="Skip folds with existing summary.json to resume interrupted runs"
 
     )
 
@@ -2421,7 +2421,7 @@ def main():
                 continue
 
             ####################################################
-            # 数据路径
+            # Data paths
             ####################################################
 
             if args.test:
@@ -2505,7 +2505,7 @@ def main():
                 continue
 
             ####################################################
-            # 权重路径
+            # Checkpoint paths
             ####################################################
 
             checkpoint_path, ckpt_name = resolve_checkpoint(
@@ -2601,7 +2601,7 @@ def main():
                 continue
 
             ####################################################
-            # 评估
+            # Evaluation
             ####################################################
 
             row = evaluate_one_fold(
@@ -2633,7 +2633,7 @@ def main():
             )
 
         ########################################################
-        # 跨折汇总
+        # Cross-fold summary
         ########################################################
 
         if fold_rows:
@@ -2701,7 +2701,7 @@ def main():
             )
 
     ########################################################
-    # 全部模型汇总
+    # All-model summary
     ########################################################
 
     if all_models_summary:
