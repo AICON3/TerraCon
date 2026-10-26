@@ -36,7 +36,7 @@ If a script does not implement `--help`, check its argument parser and configura
 
 **Script:** `code/preprocessing/convert_device_export.py`
 
-This stage converts WIT binary files for sensor keys `G`, `L1`, `L2`, `L3`, `R1`, `R2`, and `R3` into Excel workbooks. The described workflow concatenates numbered files in order, preserves source files, retains raw hexadecimal data for traceability, and stores unparsed or trailing incomplete bytes in a separate worksheet.
+This stage converts WIT binary files for sensor keys `G`, `L1`, `L2`, `L3`, `R1`, `R2`, and `R3` into Excel workbooks. The described workflow concatenates numbered files in order, preserves source files, retains raw hexadecimal data for traceability, and stores unparsed or trailing incomplete bytes in a separate worksheet. Valid device date/time fields are also written to a parsed `timestamp` column for downstream alignment; invalid timestamps remain available in the raw timestamp and component fields but are left blank in the parsed column.
 
 Confirm the input naming pattern, workbook sheet names, output columns, and overwrite behavior for the selected script.
 
