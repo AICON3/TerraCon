@@ -11,16 +11,16 @@ import pandas as pd
 
 SUB_ID = "sub_002"
 
-# 可选择："z2"、"z3"、"z4"
+# Select "z2", "z3", or "z4"
 TERRAIN_ID = "z2"
 
-# 数据根目录
+# Data root directory
 BASE_DIR = r"E:\data"
 
-# 当前被试文件夹
+# Current participant directory
 SUB_DIR = os.path.join(BASE_DIR, f"{SUB_ID}_label")
 
-# 检查地形名称是否合法
+# Validate the terrain name
 SUPPORTED_TERRAINS = ["z2", "z3", "z4"]
 
 TERRAIN_ID = TERRAIN_ID.lower().strip()
@@ -31,7 +31,7 @@ if TERRAIN_ID not in SUPPORTED_TERRAINS:
         f"目前支持: {', '.join(SUPPORTED_TERRAINS)}"
     )
 
-# 自动生成所选地形的 fwd/bwd 输入文件路径
+# Generate fwd/bwd input paths for the selected terrain
 INPUT_FILES = [
     os.path.join(
         SUB_DIR,
@@ -42,13 +42,13 @@ INPUT_FILES = [
 
 PRINT_EVENTS = True
 
-# 最后从最后一个 l_label == 3 开始强制归 0
+# Force labels to 0 starting from the final l_label == 3 event
 FORCE_ZERO_FROM_LAST_LEFT_LABEL3 = True
 
 
 
 # ============================================================
-# 1. Z2 地形标签
+# 1. Terrain labels for Z2
 # ============================================================
 
 Z2_FWD_SINGLE_TERRAIN_SEQUENCE = [
@@ -64,7 +64,7 @@ Z2_FWD_SINGLE_TERRAIN_SEQUENCE = [
     26,
     15,
 
-    # 最后遇到 l_label == 3 开始为 0
+    # Set subsequent labels to 0 at the final l_label == 3 event
     0,
 ]
 
@@ -96,7 +96,7 @@ Z2_BWD_SINGLE_TERRAIN_SEQUENCE = [
     -30,
     -15,
 
-    # 最后遇到 l_label == 3 开始为 0
+    # Set subsequent labels to 0 at the final l_label == 3 event
     0,
 ]
 
@@ -117,7 +117,7 @@ Z2_BWD_SAME_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 2. Z3 地形标签
+# 2. Terrain labels for Z3
 # ============================================================
 
 Z3_FWD_SINGLE_TERRAIN_SEQUENCE = [
@@ -133,7 +133,7 @@ Z3_FWD_SINGLE_TERRAIN_SEQUENCE = [
     22,
     15,
 
-    # 最后遇到 l_label == 3 开始为 0
+    # Set subsequent labels to 0 at the final l_label == 3 event
     0,
 ]
 
@@ -165,7 +165,7 @@ Z3_BWD_SINGLE_TERRAIN_SEQUENCE = [
     -30,
     -15,
 
-    # 最后遇到 l_label == 3 开始为 0
+    # Set subsequent labels to 0 at the final l_label == 3 event
     0,
 ]
 
@@ -186,7 +186,7 @@ Z3_BWD_SAME_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 3. Z4 地形标签
+# 3. Terrain labels for Z4
 # ============================================================
 
 Z4_FWD_SINGLE_TERRAIN_SEQUENCE = [
@@ -202,7 +202,7 @@ Z4_FWD_SINGLE_TERRAIN_SEQUENCE = [
     46,
     19,
 
-    # 最后遇到 l_label == 3 开始为 0
+    # Set subsequent labels to 0 at the final l_label == 3 event
     0,
 ]
 
@@ -234,7 +234,7 @@ Z4_BWD_SINGLE_TERRAIN_SEQUENCE = [
     -38,
     -19,
 
-    # 最后遇到 l_label == 3 开始为 0
+    # Set subsequent labels to 0 at the final l_label == 3 event
     0,
 ]
 
@@ -255,7 +255,7 @@ Z4_BWD_SAME_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 4. Excel 自动读取
+# 4. Automatic Excel loading
 # ============================================================
 
 def read_excel_auto_sheet(input_file):
@@ -319,7 +319,7 @@ def read_excel_auto_sheet(input_file):
 
 
 # ============================================================
-# 5. 判断 z2 / z3 / z4 方向
+# 5. Determine z2 / z3 / z4 direction
 # ============================================================
 
 def detect_z234_direction_from_filename(input_file):
@@ -352,7 +352,7 @@ def detect_z234_direction_from_filename(input_file):
 
 
 # ============================================================
-# 6. 自动生成输出路径
+# 6. Generate the output path
 # ============================================================
 
 def extract_subject_id(input_file):
@@ -409,7 +409,7 @@ def build_output_file(input_file):
 
 
 # ============================================================
-# 7. 安全保存 Excel
+# 7. Save the Excel workbook safely
 # ============================================================
 
 def save_excel_safely(df, output_file, sheet_name="data"):
@@ -466,7 +466,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
 
 # ============================================================
-# 8. 通用事件检测函数
+# 8. General event-detection functions
 # ============================================================
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
@@ -515,7 +515,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 
 # ============================================================
-# 9. Z2/Z3/Z4 共用事件逻辑
+# 9. Shared event logic for Z2/Z3/Z4
 # ============================================================
 
 def collect_z234_terrain_events(df):
@@ -575,19 +575,19 @@ def collect_z234_terrain_events(df):
             "r_label == 3 的起始事件少于 1 个，无法执行 Z2/Z3/Z4 的贴标规则。"
         )
 
-    # 第 1 个事件：第一个 l_label == 3
+    # Event 1: the first l_label == 3
     first_event = dict(l3_events[0])
     first_event["event_rule"] = "first_l_label_3_start_first_label"
     events.append(first_event)
 
-    # 第 2 个事件：第二个 l_label == 3
+    # Event 2: the second l_label == 3
     second_event = dict(l3_events[1])
     second_event["event_rule"] = "second_l_label_3"
     events.append(second_event)
 
     second_idx = second_event["idx"]
 
-    # 第 3 个事件：第二个 l_label == 3 后第一个 r_label == 3
+    # Event 3: first r_label == 3 after the second l_label == 3
     r3_after_second = [
         e for e in r3_events
         if e["idx"] > second_idx
@@ -605,7 +605,7 @@ def collect_z234_terrain_events(df):
 
     third_idx = third_event["idx"]
 
-    # 第 4 个事件及以后：第三个事件之后，l_label==3 或 r_label==3
+    # Event 4 onward: l_label == 3 or r_label == 3 after the third event
     left_l3_after_third = [
         e for e in l3_events
         if e["idx"] > third_idx
@@ -632,7 +632,7 @@ def collect_z234_terrain_events(df):
 
 
 # ============================================================
-# 10. 根据方向获取标签序列
+# 10. Get label sequences for the direction
 # ============================================================
 
 def get_z234_sequences(direction):
@@ -661,7 +661,7 @@ def get_z234_sequences(direction):
 
 
 # ============================================================
-# 11. 严格检查：标签数量必须和事件数量一致
+# 11. Strictly validate that label count matches event count
 # ============================================================
 
 def check_event_label_count_match(events, sequence, sequence_name):
@@ -697,7 +697,7 @@ def check_event_label_count_match(events, sequence, sequence_name):
 
 
 # ============================================================
-# 12. 根据事件序列贴地形标签
+# 12. Assign terrain labels from the event sequence
 # ============================================================
 
 def apply_terrain_sequence(
@@ -775,7 +775,7 @@ def apply_terrain_sequence(
 
 
 # ============================================================
-# 13. 最后一个 l_label == 3 后强制归 0
+# 13. Force labels to 0 after the final l_label == 3 event
 # ============================================================
 
 def force_zero_from_last_left_label3(df, output_col):
@@ -826,7 +826,7 @@ def force_zero_from_last_left_label3(df, output_col):
 
 
 # ============================================================
-# 14. 打印事件和标签对应关系
+# 14. Print event-to-label mappings
 # ============================================================
 
 def print_event_mapping(events, sequence, title):
@@ -877,7 +877,7 @@ def print_event_mapping(events, sequence, title):
 
 
 # ============================================================
-# 15. 标签统计
+# 15. Label statistics
 # ============================================================
 
 def print_label_statistics(df):
@@ -905,7 +905,7 @@ def print_terrain_statistics(df):
 
 
 # ============================================================
-# 16. 检查左右事件是否交替
+# 16. Check alternating left/right events
 # ============================================================
 
 def check_left_right_alternation(events):
@@ -954,7 +954,7 @@ def check_left_right_alternation(events):
 
 
 # ============================================================
-# 17. 处理单个文件
+# 17. Process a single file
 # ============================================================
 
 def process_one_file(input_file):
@@ -997,8 +997,8 @@ def process_one_file(input_file):
     print(f"[标签数量] 同侧标签数量: {len(same_sequence)}")
 
     # ========================================================
-    # 严格检查：标签数量必须和事件数量一致
-    # 不一致则不生成新文件
+    # Strict check: label count must match event count
+    # Do not create an output file if counts differ
     # ========================================================
 
     single_ok = check_event_label_count_match(
@@ -1035,7 +1035,7 @@ def process_one_file(input_file):
             title=f"[{direction} 同侧地形标签映射]",
         )
 
-    # 贴单侧地形标签
+    # Assign single-side terrain labels
     df = apply_terrain_sequence(
         df=df,
         events=events,
@@ -1045,7 +1045,7 @@ def process_one_file(input_file):
         keep_last=False,
     )
 
-    # 贴同侧地形标签
+    # Assign same-side terrain labels
     df = apply_terrain_sequence(
         df=df,
         events=events,
@@ -1055,7 +1055,7 @@ def process_one_file(input_file):
         keep_last=False,
     )
 
-    # 最后一个 l_label == 3 起始事件后强制归 0
+    # Force labels to 0 from the final l_label == 3 start event
     if FORCE_ZERO_FROM_LAST_LEFT_LABEL3:
         df = force_zero_from_last_left_label3(
             df=df,
@@ -1091,7 +1091,7 @@ def process_one_file(input_file):
 
 
 # ============================================================
-# 18. 主程序
+# 18. Main entry point
 # ============================================================
 
 def main():
