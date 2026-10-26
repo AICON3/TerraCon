@@ -679,7 +679,7 @@ def apply_terrain_sequence(
     if len(events) != len(terrain_sequence):
         raise ValueError(
             f"{output_col}: Event count {len(events)} "
-            f"和terrain-sequence length {len(terrain_sequence)} do not match."
+            f"and terrain-sequence length {len(terrain_sequence)} do not match."
         )
 
     first_idx = events[0]["idx"]
@@ -836,7 +836,7 @@ def process_one_file(input_file):
     if not single_ok or not same_ok:
         raise RuntimeError(
             f"{direction} Label count and event count differ，do not generate an output file。\n"
-            f"事件Label count: {len(events)}\n"
+            f"Event count: {len(events)}\n"
             f"Original single-side label count: {len(single_sequence)}\n"
             f"Original same-side label count: {len(same_sequence)}"
         )
@@ -909,7 +909,7 @@ def process_one_file(input_file):
 
 def main():
     print("=" * 100)
-    print("[Y方向terrain label batch processing started]")
+    print("[Y terrain batch labeling started]")
     print(f"Subject: {SUB_ID}")
     print(f"Input directory: {SUB_DIR}")
     print(f"Files to process: {len(INPUT_FILES)}")
@@ -941,7 +941,7 @@ def main():
             print(
                 f"[Completed] {result['direction']} | "
                 f"Rows: {result['row_count']} | "
-                f"原始Label count: single-side={result['single_label_count']}, "
+                f"Original label count: single-side={result['single_label_count']}, "
                 f"same-side={result['same_label_count']} | "
                 f"Labeled event count={result['event_count']} | "
                 f"Output: {result['output_file']}"
@@ -976,7 +976,7 @@ def main():
         for r in results:
             print(
                 f"{r['direction']} | "
-                f"原始Label count: single-side={r['single_label_count']}, "
+                f"Original label count: single-side={r['single_label_count']}, "
                 f"same-side={r['same_label_count']} | "
                 f"Labeled event count={r['event_count']} | "
                 f"l_label==3 events={r['l3_event_count']} | "
