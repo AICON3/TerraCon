@@ -6,33 +6,33 @@ import pandas as pd
 
 
 # ============================================================
-# 0. 配置区
+# 0. Configuration
 # ============================================================
 
 SUB_ID = "sub_048"
 
-# 数据所在根目录
+# Root directory containing the data
 BASE_DIR = r"E:\data"
 
-# 当前被试文件夹
+# Current participant directory
 SUB_DIR = os.path.join(BASE_DIR, f"{SUB_ID}_label")
 
-# 可以同时处理 fwd 和 bwd
+# Both forward (fwd) and backward (bwd) directions can be processed
 INPUT_FILES = [
     os.path.join(SUB_DIR, f"{SUB_ID}_x_fwd_aligned_labeled.xlsx"),
     os.path.join(SUB_DIR, f"{SUB_ID}_x_bwd_aligned_labeled.xlsx"),
 ]
 
-# 是否打印详细事件映射
-# False = 不打印事件过程，只打印数量结果和最终结果
+# Whether to print detailed event mappings
+# False = print only event counts and final results, not the detection process
 PRINT_EVENTS = False
 
-# 是否执行最后强制归 0
+# Whether to force labels to 0 after the final event
 FORCE_ZERO_FROM_LAST_SPECIAL_SIDE_LABEL3 = True
 
 
 # ============================================================
-# 1. x_fwd 单侧地形标签序列
+# 1. Single-side terrain label sequence for x_fwd
 # ============================================================
 
 FWD_SINGLE_TERRAIN_SEQUENCE = [
@@ -86,7 +86,7 @@ FWD_SINGLE_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 2. x_fwd 双侧地形标签序列
+# 2. Bilateral terrain label sequence for x_fwd
 # ============================================================
 
 FWD_DOUBLE_TERRAIN_SEQUENCE = [
@@ -138,13 +138,13 @@ FWD_DOUBLE_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 3. x_bwd 单侧/双侧地形标签序列
+# 3. Single-side and bilateral terrain label sequences for x_bwd
 # ============================================================
 
-# bwd 单侧：fwd 单侧倒过来，不算最后的 0，然后末尾再加 0
+# Single-side bwd: reverse the single-side fwd sequence, exclude its final 0, then append 0
 BWD_SINGLE_TERRAIN_SEQUENCE = list(reversed(FWD_SINGLE_TERRAIN_SEQUENCE[:-1])) + [0]
 
-# bwd 双侧：使用你给的新序列
+# Bilateral bwd: use the specified sequence
 BWD_DOUBLE_TERRAIN_SEQUENCE = [
     3,
     31,
@@ -193,7 +193,7 @@ BWD_DOUBLE_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 4. Excel 自动读取
+# 4. Automatic Excel loading
 # ============================================================
 
 def read_excel_auto_sheet(input_file):
@@ -243,7 +243,7 @@ def read_excel_auto_sheet(input_file):
 
 
 # ============================================================
-# 5. 判断方向 fwd/bwd
+# 5. Determine the fwd/bwd direction
 # ============================================================
 
 def detect_direction_from_filename(input_file):
@@ -268,7 +268,7 @@ def detect_direction_from_filename(input_file):
 
 
 # ============================================================
-# 6. 自动生成输出文件夹和输出文件路径
+# 6. Generate the output directory and file path
 # ============================================================
 
 def extract_subject_id(input_file):
@@ -329,7 +329,7 @@ def build_output_file(input_file):
 
 
 # ============================================================
-# 7. 安全保存 Excel
+# 7. Save the Excel workbook safely
 # ============================================================
 
 def save_excel_safely(df, output_file, sheet_name="data"):
@@ -379,7 +379,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
 
 # ============================================================
-# 8. 通用事件检测函数
+# 8. General event-detection functions
 # ============================================================
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
@@ -430,7 +430,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 
 # ============================================================
-# 9. fwd 规则：左脚先行
+# 9. fwd rule: left foot leads
 # ============================================================
 
 def collect_fwd_terrain_events(df):
@@ -529,7 +529,7 @@ def collect_fwd_terrain_events(df):
 
 
 # ============================================================
-# 10. bwd 规则：右脚先行
+# 10. bwd rule: right foot leads
 # ============================================================
 
 def collect_bwd_terrain_events(df):
@@ -628,7 +628,7 @@ def collect_bwd_terrain_events(df):
 
 
 # ============================================================
-# 11. 根据方向获取事件和标签序列
+# 11. Get events and label sequences for the selected direction
 # ============================================================
 
 def get_events_and_sequences_by_direction(df, direction):
@@ -647,7 +647,7 @@ def get_events_and_sequences_by_direction(df, direction):
         single_sequence = FWD_SINGLE_TERRAIN_SEQUENCE
         double_sequence = FWD_DOUBLE_TERRAIN_SEQUENCE
 
-        # fwd 最后从 l_label == 3 开始归 0
+        # For fwd, set labels to 0 from the final l_label == 3 event onward
         force_zero_side = "L"
 
         return events, l3_events, r3_events, single_sequence, double_sequence, force_zero_side
@@ -658,7 +658,7 @@ def get_events_and_sequences_by_direction(df, direction):
         single_sequence = BWD_SINGLE_TERRAIN_SEQUENCE
         double_sequence = BWD_DOUBLE_TERRAIN_SEQUENCE
 
-        # bwd 最后从 r_label == 3 开始归 0
+        # For bwd, set labels to 0 from the final r_label == 3 event onward
         force_zero_side = "R"
 
         return events, l3_events, r3_events, single_sequence, double_sequence, force_zero_side
@@ -667,7 +667,7 @@ def get_events_and_sequences_by_direction(df, direction):
 
 
 # ============================================================
-# 12. 数量检查与数量结果打印
+# 12. Validate counts and print count results
 # ============================================================
 
 def check_event_label_count_match(events, sequence):
@@ -744,7 +744,7 @@ def print_count_summary(
 
 
 # ============================================================
-# 13. 根据事件序列贴地形标签
+# 13. Assign terrain labels from the event sequence
 # ============================================================
 
 def apply_terrain_sequence(
@@ -814,7 +814,7 @@ def apply_terrain_sequence(
 
 
 # ============================================================
-# 14. 最后一个指定侧 label == 3 后强制归 0
+# 14. Force labels to 0 after the final label == 3 event on the specified side
 # ============================================================
 
 def force_zero_from_last_side_label3(df, output_cols, side):
@@ -858,7 +858,7 @@ def force_zero_from_last_side_label3(df, output_cols, side):
 
 
 # ============================================================
-# 15. 可选：打印事件和标签对应关系
+# 15. Optional: print event-to-label mappings
 # ============================================================
 
 def print_event_mapping(events, sequence, title):
@@ -902,7 +902,7 @@ def print_event_mapping(events, sequence, title):
 
 
 # ============================================================
-# 16. 处理单个文件
+# 16. Process a single file
 # ============================================================
 
 def process_one_file(input_file):
@@ -939,7 +939,7 @@ def process_one_file(input_file):
     if len(events) == 0:
         raise RuntimeError("没有检测到任何可用于贴地形标签的事件。")
 
-    # 打印数量结果：原始标签数量 + 事件标签数量
+    # Print counts for the original labels and event labels
     print_count_summary(
         direction=direction,
         events=events,
@@ -949,7 +949,7 @@ def process_one_file(input_file):
         double_sequence=double_sequence,
     )
 
-    # 严格检查：标签数量必须和事件数量一致
+    # Strictly verify that the number of labels matches the number of events
     single_ok = check_event_label_count_match(
         events=events,
         sequence=single_sequence,
@@ -981,7 +981,7 @@ def process_one_file(input_file):
             title=f"[x_{direction} 双侧地形标签映射]",
         )
 
-    # 贴单侧地形标签
+    # Assign single-side terrain labels
     df = apply_terrain_sequence(
         df=df,
         events=events,
@@ -990,7 +990,7 @@ def process_one_file(input_file):
         initial_label=0,
     )
 
-    # 贴双侧地形标签
+    # Assign bilateral terrain labels
     df = apply_terrain_sequence(
         df=df,
         events=events,
@@ -999,7 +999,7 @@ def process_one_file(input_file):
         initial_label=0,
     )
 
-    # 最后指定侧 label==3 起始事件后强制归 0
+    # Force labels to 0 after the final label == 3 event on the specified side
     if FORCE_ZERO_FROM_LAST_SPECIAL_SIDE_LABEL3:
         df = force_zero_from_last_side_label3(
             df=df,
@@ -1032,7 +1032,7 @@ def process_one_file(input_file):
 
 
 # ============================================================
-# 17. 主程序
+# 17. Main entry point
 # ============================================================
 
 def main():
