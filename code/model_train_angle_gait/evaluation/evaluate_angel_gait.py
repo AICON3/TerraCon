@@ -53,7 +53,7 @@ from scipy.stats import pearsonr
 ############################################################
 
 
-# 当前项目根目录
+# Current project root directory
 #
 # model_train/
 # ├── datasets
@@ -1377,7 +1377,7 @@ def main():
 
     else:
 
-        # 根据 name 自动选择
+        # Select automatically by name
         if "subject_scene_split" in args.name:
 
             split_list = [
