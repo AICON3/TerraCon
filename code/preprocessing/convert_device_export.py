@@ -15,10 +15,10 @@ Goals:
 6. Concatenate by WIT file number and original byte order, without resorting by time.
 
 Default input:
-/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/device_export
+/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/device_export
 
 Default output:
-/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/original_picture
+/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/original_picture
 
 Example output structure:
 original_picture/
@@ -26,7 +26,7 @@ original_picture/
     G/
       sub_001_G_WIT0.xlsx
       sub_001_G_WIT1.xlsx
-      sub_001_G_拼接.xlsx
+      sub_001_G_merged.xlsx
     L1/
       ...
 """
@@ -45,8 +45,8 @@ from openpyxl.styles import Font, PatternFill, Alignment
 # =========================
 # Path configuration
 # =========================
-INPUT_ROOT = "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/device_export"
-OUTPUT_ROOT = "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/original_picture"
+INPUT_ROOT = "/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/device_export"
+OUTPUT_ROOT = "/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/original_picture"
 
 SUBJECT_START = 11
 SUBJECT_END = 11
@@ -64,42 +64,42 @@ MAX_DATA_ROWS_PER_SHEET = 1_048_575
 MAX_UNPARSED_BYTES_PER_ROW = 8000
 
 DATA_COLUMNS = [
-    "拼接序号",
-    "源文件",
-    "文件内帧序号",
-    "源字节起始偏移",
-    "同步头正确",
-    "时间是否合法",
-    "时间戳原始字符串",
-    "年份",
-    "月份",
-    "日期",
-    "小时",
-    "分钟",
-    "秒",
-    "毫秒",
-    "X轴加速度(g)",
-    "Y轴加速度(g)",
-    "Z轴加速度(g)",
-    "X轴角速度(deg/s)",
-    "Y轴角速度(deg/s)",
-    "Z轴角速度(deg/s)",
-    "X轴角度(deg)",
-    "Y轴角度(deg)",
-    "Z轴角度(deg)",
+    "Merge index",
+    "Source file",
+    "Frame index in file",
+    "Source byte offset",
+    "Sync header valid",
+    "Timestamp valid",
+    "Raw timestamp string",
+    "Year",
+    "Month",
+    "Day",
+    "Hour",
+    "Minute",
+    "Second",
+    "Millisecond",
+    "X acceleration (g)",
+    "Y acceleration (g)",
+    "Z acceleration (g)",
+    "X angular velocity (deg/s)",
+    "Y angular velocity (deg/s)",
+    "Z angular velocity (deg/s)",
+    "X angle (deg)",
+    "Y angle (deg)",
+    "Z angle (deg)",
     "raw_hex",
 ]
 
 UNPARSED_COLUMNS = [
-    "源文件",
-    "起始偏移",
-    "结束偏移_不含",
-    "字节数",
-    "原因",
+    "Source file",
+    "Start offset",
+    "End offset (exclusive)",
+    "Byte count",
+    "Reason",
     "raw_hex",
 ]
 
-INFO_COLUMNS = ["项目", "内容"]
+INFO_COLUMNS = ["Field", "Value"]
 
 HEADER_FONT = Font(name="Microsoft YaHei", bold=True, color="FFFFFF", size=11)
 HEADER_FILL = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
@@ -250,7 +250,7 @@ def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
 
         # If 28 bytes remain and the current position is a sync header, read a complete frame
         if remain >= RECORD_SIZE and raw[pos:pos + 2] == SYNC_HEADER:
-            pending_list = flush_unparsed(pos, "同步头之间的异常/错位原始字节")
+            pending_list = flush_unparsed(pos, "Malformed or misaligned raw bytes between sync headers")
             for pending in pending_list:
                 yield "unparsed", pending
 
@@ -273,7 +273,7 @@ def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
             unparsed_start = pos
         pos += 1
 
-    pending_list = flush_unparsed(total, "文件尾不足28字节或末尾异常/错位原始字节")
+    pending_list = flush_unparsed(total, "Trailing bytes shorter than 28 bytes or malformed/misaligned bytes")
     for pending in pending_list:
         yield "unparsed", pending
 
@@ -306,7 +306,7 @@ def make_header_cell(ws, value: str):
 class ExcelStreamWriter:
     """Automatically use additional worksheets when exceeding Excel row limits."""
 
-    def __init__(self, output_path: str, title_prefix: str = "数据"):
+    def __init__(self, output_path: str, title_prefix: str = "Data"):
         self.output_path = output_path
         self.wb = Workbook(write_only=True)
         self.title_prefix = title_prefix
@@ -329,7 +329,7 @@ class ExcelStreamWriter:
         self.current_data_rows = 0
 
     def _create_unparsed_sheet(self):
-        self.unparsed_ws = self.wb.create_sheet(title="未解析字节")
+        self.unparsed_ws = self.wb.create_sheet(title="Unparsed Bytes")
         self.unparsed_ws.append([make_header_cell(self.unparsed_ws, x) for x in UNPARSED_COLUMNS])
 
     def append_frame(self, rec: Dict, concat_index: int):
@@ -379,7 +379,7 @@ class ExcelStreamWriter:
         self.total_unparsed_bytes += seg["byte_count"]
 
     def add_info_sheet(self, info_items: List[Tuple[str, str]]):
-        self.info_ws = self.wb.create_sheet(title="文件信息")
+        self.info_ws = self.wb.create_sheet(title="File Info")
         self.info_ws.append([make_header_cell(self.info_ws, x) for x in INFO_COLUMNS])
         for key, value in info_items:
             self.info_ws.append([key, value])
@@ -403,16 +403,16 @@ def convert_one_wit_file(filepath: str, output_path: str, sub_name: str, sensor_
 
     file_size = os.path.getsize(filepath)
     writer.add_info_sheet([
-        ("受试者", sub_name),
-        ("传感器目录", sensor_name),
-        ("源文件", filepath),
-        ("源文件字节数", str(file_size)),
-        ("完整帧数", str(writer.total_frames)),
-        ("未解析片段数", str(writer.total_unparsed_segments)),
-        ("未解析字节数", str(writer.total_unparsed_bytes)),
-        ("记录大小", f"{RECORD_SIZE} bytes/frame"),
-        ("同步头", SYNC_HEADER.hex(" ").upper()),
-        ("说明", "没有因为时间非法或错位而删除原始字节；完整帧保存 raw_hex，异常/尾部字节保存在未解析字节工作表。"),
+        ("Participant", sub_name),
+        ("Sensor directory", sensor_name),
+        ("Source file", filepath),
+        ("Source file size (bytes)", str(file_size)),
+        ("Complete frame count", str(writer.total_frames)),
+        ("Unparsed segment count", str(writer.total_unparsed_segments)),
+        ("Unparsed byte count", str(writer.total_unparsed_bytes)),
+        ("Record size", f"{RECORD_SIZE} bytes/frame"),
+        ("Sync header", SYNC_HEADER.hex(" ").upper()),
+        ("Notes", "Raw bytes are retained even when timestamps are invalid or data are misaligned. Complete frames are stored as raw_hex; malformed or trailing bytes are stored in the Unparsed Bytes worksheet."),
     ])
     writer.save()
 
@@ -464,7 +464,7 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
         )
 
     # Then concatenate at the directory level
-    merge_name = f"{sub_name}_{sensor_name}_拼接.xlsx"
+    merge_name = f"{sub_name}_{sensor_name}_merged.xlsx"
     merge_path = os.path.join(output_dir, merge_name)
     merge_writer = ExcelStreamWriter(merge_path)
     concat_index = 0
@@ -483,17 +483,17 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
                 merge_writer.append_unparsed(obj)
 
     merge_writer.add_info_sheet([
-        ("受试者", sub_name),
-        ("传感器目录", sensor_name),
-        ("源目录", input_dir),
-        ("拼接文件顺序", ", ".join(wit_files)),
-        ("源文件数量", str(len(wit_files))),
-        ("源文件总字节数", str(total_source_bytes)),
-        ("拼接完整帧数", str(merge_writer.total_frames)),
-        ("未解析片段数", str(merge_writer.total_unparsed_segments)),
-        ("未解析字节数", str(merge_writer.total_unparsed_bytes)),
-        ("拼接规则", "按 WIT 数字编号升序；每个文件内部保持原始顺序；不按时间排序。"),
-        ("说明", "没有因为时间非法或同步异常删除原始字节；异常字节统一保存在未解析字节工作表。"),
+        ("Participant", sub_name),
+        ("Sensor directory", sensor_name),
+        ("Source directory", input_dir),
+        ("Input file order", ", ".join(wit_files)),
+        ("Source file count", str(len(wit_files))),
+        ("Total source bytes", str(total_source_bytes)),
+        ("Merged complete frame count", str(merge_writer.total_frames)),
+        ("Unparsed segment count", str(merge_writer.total_unparsed_segments)),
+        ("Unparsed byte count", str(merge_writer.total_unparsed_bytes)),
+        ("Merge rule", "Files are concatenated in ascending WIT numeric order; original order within each file is preserved and records are not sorted by time."),
+        ("Notes", "Raw bytes are retained even when timestamps are invalid or synchronization fails. Malformed bytes are stored in the Unparsed Bytes worksheet."),
     ])
     merge_writer.save()
     print(f"    Generated merged workbook: {merge_path}")
