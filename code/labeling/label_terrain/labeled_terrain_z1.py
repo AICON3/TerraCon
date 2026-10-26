@@ -258,13 +258,13 @@ def detect_z1_direction_from_filename(input_file):
     """
     Determine from filename: z1_fwd / z1_bwd。
 
-    支持：
+    Supported:
         z1_fwd
         z1_bwd
         z_fwd
         z_bwd
 
-    返回统一方向：
+    Return normalized direction:
         z1_fwd
         z1_bwd
     """
@@ -452,7 +452,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 def collect_z1_terrain_events_like_y(df):
     """
-    Z1_fwd 和 Z1_bwd 使用和 Y 一样的Labeling logic:
+    Z1_fwd and Z1_bwd use the same labeling logic as Y:
 
     Event 1:
         First l_label == 3
@@ -466,7 +466,7 @@ def collect_z1_terrain_events_like_y(df):
     Event 4 and later:
         After the third event: l_label == 3 or r_label == 3
 
-    返回：
+    Return:
         events
         l3_events
         r3_events
@@ -495,12 +495,12 @@ def collect_z1_terrain_events_like_y(df):
 
     if len(l3_events) < 2:
         raise RuntimeError(
-            "l_label == 3 的起始事件少于 2 个，无法执行 Z1 的贴标规则。"
+            "l_label == 3 has fewer than two start events; cannot apply Z1 labeling rules."
         )
 
     if len(r3_events) < 1:
         raise RuntimeError(
-            "r_label == 3 的起始事件少于 1 个，无法执行 Z1 的贴标规则。"
+            "r_label == 3 has fewer than one start event; cannot apply Z1 labeling rules."
         )
 
     first_event = dict(l3_events[0])
@@ -520,8 +520,8 @@ def collect_z1_terrain_events_like_y(df):
 
     if len(r3_after_second) == 0:
         raise RuntimeError(
-            "已经找到Second l_label == 3，"
-            "但其后没有找到 r_label == 3，无法执行第 3 次贴标。"
+            "The second l_label == 3 was found, "
+            "but no subsequent r_label == 3 was found; cannot assign the third label."
         )
 
     third_event = dict(r3_after_second[0])
@@ -814,7 +814,7 @@ def process_one_file(input_file):
         raise KeyError(
             "Required columns are missing:\n"
             + "\n".join(missing)
-            + "\n\n请确认The input file must already contain gait labels."
+            + "\n\nPlease verify that the input workbook already contains gait labels."
         )
 
     events, l3_events, r3_events = collect_z1_terrain_events_like_y(df)
@@ -857,13 +857,13 @@ def process_one_file(input_file):
         print_event_mapping(
             events,
             single_sequence,
-            title=f"[{direction} 单侧地形label mapping]",
+            title=f"[{direction} single-side terrain label mapping]",
         )
 
         print_event_mapping(
             events,
             same_sequence,
-            title=f"[{direction} 同侧地形label mapping]",
+            title=f"[{direction} same-side terrain label mapping]",
         )
 
     # Assign single-side terrain labels
@@ -921,7 +921,7 @@ def process_one_file(input_file):
 
 def main():
     print("=" * 100)
-    print("[Z1方向地形标签批处理开始]")
+    print("[Z1方向terrain label batch processing started]")
     print(f"Subject: {SUB_ID}")
     print(f"Input directory: {SUB_DIR}")
     print(f"Files to process: {len(INPUT_FILES)}")
