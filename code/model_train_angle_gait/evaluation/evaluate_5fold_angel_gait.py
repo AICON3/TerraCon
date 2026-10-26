@@ -2028,7 +2028,7 @@ def main():
 
         help=(
 
-            "一次评估多个模型，Example: "
+            "Evaluate multiple models, e.g. "
 
             "--models TCN LSTM GPT4TS；"
 
