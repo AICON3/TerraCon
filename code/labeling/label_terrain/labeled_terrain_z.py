@@ -27,8 +27,8 @@ TERRAIN_ID = TERRAIN_ID.lower().strip()
 
 if TERRAIN_ID not in SUPPORTED_TERRAINS:
     raise ValueError(
-        f"不支持的地形名称: {TERRAIN_ID}\n"
-        f"目前支持: {', '.join(SUPPORTED_TERRAINS)}"
+        f"Unsupported terrain name: {TERRAIN_ID}\n"
+        f"Supported values: {', '.join(SUPPORTED_TERRAINS)}"
     )
 
 # Generate fwd/bwd input paths for the selected terrain
@@ -345,9 +345,9 @@ def detect_z234_direction_from_filename(input_file):
             return p
 
     raise ValueError(
-        "无法从文件名判断方向，请确保文件名包含：\n"
+        "无法Determine direction from filename，请确保文件名包含：\n"
         "z2_fwd / z2_bwd / z3_fwd / z3_bwd / z4_fwd / z4_bwd\n"
-        f"当前File: {input_file}"
+        f"Current file: {input_file}"
     )
 
 
@@ -520,7 +520,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 def collect_z234_terrain_events(df):
     """
-    Z2/Z3/Z4 的贴标事件Logic:
+    Labeling-event logic for Z2/Z3/Z4:
 
     Initialize to 0.
 
@@ -534,14 +534,14 @@ def collect_z234_terrain_events(df):
 
     Event 3:
         Second l_label == 3 之后，
-        第一个 r_label == 3
+        First r_label == 3
 
     Event 4 and later:
         After the third event,
-        l_label == 3 或 r_label == 3
+        l_label == 3 or r_label == 3
 
     Finally:
-        最后一个 l_label == 3 作为归 0 起点。
+        Use the final l_label == 3 event as the point where labels return to zero.
     """
     if "l_label" not in df.columns:
         raise KeyError("Missing column: l_label")
@@ -567,12 +567,12 @@ def collect_z234_terrain_events(df):
 
     if len(l3_events) < 2:
         raise RuntimeError(
-            "l_label == 3 的起始事件少于 2 个，无法执行 Z2/Z3/Z4 的贴标规则。"
+            "l_label == 3 has fewer than two start events; cannot apply Z2/Z3/Z4 labeling rules."
         )
 
     if len(r3_events) < 1:
         raise RuntimeError(
-            "r_label == 3 的起始事件少于 1 个，无法执行 Z2/Z3/Z4 的贴标规则。"
+            "r_label == 3 has fewer than one start event; cannot apply Z2/Z3/Z4 labeling rules."
         )
 
     # Event 1: the first l_label == 3
@@ -595,8 +595,8 @@ def collect_z234_terrain_events(df):
 
     if len(r3_after_second) == 0:
         raise RuntimeError(
-            "已经找到Second l_label == 3，"
-            "但其后没有找到 r_label == 3，无法执行第 3 次贴标。"
+            "The second l_label == 3 was found, "
+            "but no subsequent r_label == 3 was found; cannot assign the third label."
         )
 
     third_event = dict(r3_after_second[0])
@@ -679,7 +679,7 @@ def check_event_label_count_match(events, sequence, sequence_name):
     print(f"Label count: {label_count}")
 
     if event_count == label_count:
-        print("[Validation passed] 事件数量和标签数量一致。")
+        print("[Validation passed] event count和label count一致。")
         print("=" * 80)
         return True
 
@@ -687,9 +687,9 @@ def check_event_label_count_match(events, sequence, sequence_name):
     print("将跳过当前文件，do not generate an output file。")
 
     if event_count > label_count:
-        print(f"事件数量比标签数量多 {event_count - label_count} 个。")
+        print(f"event count比label count多 {event_count - label_count} 个。")
     else:
-        print(f"标签数量比事件数量多 {label_count - event_count} 个。")
+        print(f"label count比event count多 {label_count - event_count} 个。")
 
     print("=" * 80)
 
@@ -730,7 +730,7 @@ def apply_terrain_sequence(
     )
 
     if len(events) == 0:
-        print(f"[Warning] 没有检测到事件，{output_col} 全部填 {initial_label}")
+        print(f"[Warning] No events detected; {output_col} fill all with {initial_label}")
         df[output_col] = terrain.astype(int)
         return df
 
@@ -744,7 +744,7 @@ def apply_terrain_sequence(
             raise ValueError(msg)
         else:
             print(f"[Warning] {msg}")
-            print("[Processing] 超出部分将保持 terrain_sequence 最后一个标签。")
+            print("[Processing] The excess portion retains the final terrain_sequence label.")
 
     first_idx = events[0]["idx"]
 
@@ -810,13 +810,13 @@ def force_zero_from_last_left_label3(df, output_col):
         t = df.loc[last_left_idx, "time_s"]
         print(
             f"[Final reset to zero] {output_col}: "
-            f"从最后一个 l_label == 3 开始置 0，"
+            f"Set labels to zero from the final l_label == 3 event; "
             f"idx={last_left_idx}, time={t:.4f}s"
         )
     else:
         print(
             f"[Final reset to zero] {output_col}: "
-            f"从最后一个 l_label == 3 开始置 0，"
+            f"Set labels to zero from the final l_label == 3 event; "
             f"idx={last_left_idx}"
         )
 
@@ -867,11 +867,11 @@ def print_event_mapping(events, sequence, title):
     print(f"Label count: {len(sequence)}")
 
     if len(events) == len(sequence):
-        print("[检查] 事件数量与标签数量一致。")
+        print("[检查] event count与label count一致。")
     elif len(events) < len(sequence):
-        print(f"[Info] 标签数量比事件数量多 {len(sequence) - len(events)} 个。")
+        print(f"[Info] label count比event count多 {len(sequence) - len(events)} 个。")
     else:
-        print(f"[Info] 事件数量比标签数量多 {len(events) - len(sequence)} 个。")
+        print(f"[Info] event count比label count多 {len(events) - len(sequence)} 个。")
 
     print("=" * 130)
 
@@ -910,7 +910,7 @@ def print_terrain_statistics(df):
 
 def check_left_right_alternation(events):
     """
-    检查特殊规则之后，L/R label==3 是否大致交替。
+    Check whether L/R label==3 events alternate after the special-rule events.
     """
     later_events = [
         e for e in events
@@ -921,7 +921,7 @@ def check_left_right_alternation(events):
         return
 
     print("=" * 80)
-    print("[左右事件交替检查：仅检查特殊规则之后的后续事件]")
+    print("[Left/right event alternation: only subsequent events after special rules]")
 
     warnings = []
 
@@ -939,13 +939,13 @@ def check_left_right_alternation(events):
             )
 
     if not warnings:
-        print("[Validation passed] 后续 L/R label==3 事件呈交替出现。")
+        print("[Validation passed] Subsequent L/R label==3 events alternate.")
     else:
-        print(f"[Warning] 发现 {len(warnings)} 处连续同侧事件：")
+        print(f"[Warning] Found {len(warnings)} consecutive same-side events:")
 
         for i, prev_event, curr_event in warnings:
             print(
-                f"  后续事件 No.{i} 和 No.{i + 1}: "
+                f"  Later event No.{i} and No.{i + 1}: "
                 f"{prev_event['side']} -> {curr_event['side']} | "
                 f"time {prev_event['time_s']:.4f}s -> {curr_event['time_s']:.4f}s"
             )
@@ -965,7 +965,7 @@ def process_one_file(input_file):
 
     direction = detect_z234_direction_from_filename(input_file)
 
-    print(f"[Direction detection] 当前文件Direction: {direction}")
+    print(f"[Direction detection] Current direction: {direction}")
 
     df, sheet_name = read_excel_auto_sheet(input_file)
 
@@ -980,7 +980,7 @@ def process_one_file(input_file):
         raise KeyError(
             "Required columns are missing:\n"
             + "\n".join(missing)
-            + "\n\n请确认The input file must already contain gait labels."
+            + "\n\nPlease verify that the input workbook already contains gait labels."
         )
 
     print_label_statistics(df)
@@ -1004,19 +1004,19 @@ def process_one_file(input_file):
     single_ok = check_event_label_count_match(
         events=events,
         sequence=single_sequence,
-        sequence_name=f"{direction} 单侧地形标签",
+        sequence_name=f"{direction} single-side terrain label",
     )
 
     same_ok = check_event_label_count_match(
         events=events,
         sequence=same_sequence,
-        sequence_name=f"{direction} 同侧地形标签",
+        sequence_name=f"{direction} same-side terrain label",
     )
 
     if not single_ok or not same_ok:
         print("=" * 80)
-        print(f"[Skipped] {direction} 标签数量和事件数量对不上，do not generate an output file。")
-        print(f"输入File: {input_file}")
+        print(f"[Skipped] {direction} label count和event count对不上，do not generate an output file。")
+        print(f"Input file: {input_file}")
         print("=" * 80)
         return None
 
@@ -1026,13 +1026,13 @@ def process_one_file(input_file):
         print_event_mapping(
             events,
             single_sequence,
-            title=f"[{direction} 单侧地形label mapping]",
+            title=f"[{direction} single-side terrain label mapping]",
         )
 
         print_event_mapping(
             events,
             same_sequence,
-            title=f"[{direction} 同侧地形label mapping]",
+            title=f"[{direction} same-side terrain label mapping]",
         )
 
     # Assign single-side terrain labels
@@ -1080,11 +1080,11 @@ def process_one_file(input_file):
     print("=" * 80)
     print("[Completed]")
     print(f"Direction: {direction}")
-    print(f"输入File: {input_file}")
-    print(f"输出File: {actual_output_file}")
+    print(f"Input file: {input_file}")
+    print(f"Output file: {actual_output_file}")
     print("Added columns:")
-    print("  terrain_single_label  单侧地形标签")
-    print("  terrain_same_label    同侧地形标签")
+    print("  terrain_single_label  single-side terrain label")
+    print("  terrain_same_label    same-side terrain label")
     print("=" * 80)
 
     return actual_output_file
@@ -1096,7 +1096,7 @@ def process_one_file(input_file):
 
 def main():
     print("=" * 100)
-    print("[Z2/Z3/Z4 方向地形标签批处理开始]")
+    print("[Z2/Z3/Z4 方向terrain label batch processing started]")
     print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
@@ -1105,7 +1105,7 @@ def main():
     for input_file in INPUT_FILES:
         if not os.path.exists(input_file):
             print("=" * 80)
-            print("[Warning] File not found，跳过：")
+            print("[Warning] File not found; skipping:")
             print(input_file)
             print("=" * 80)
             continue
@@ -1118,7 +1118,7 @@ def main():
 
         except Exception as e:
             print("=" * 80)
-            print("[Error] Processing failed for this file; skipping，不影响后续文件。")
+            print("[Error] Processing failed for this file; skipping; continue processing subsequent files.")
             print(f"File: {input_file}")
             print(f"Error type: {type(e).__name__}")
             print(f"Error message: {e}")
