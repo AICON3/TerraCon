@@ -441,66 +441,66 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
 
 def main():
     parser = argparse.ArgumentParser(
-        description="直接指定受试者/场景/传感器，从拼接 Excel 重建场景 XLSX。"
+        description="Rebuild scene XLSX from merged Excel for selected subjects/scenes/sensors."
     )
 
     parser.add_argument(
         "--subject",
         required=True,
-        help="受试者，例如 25 / 025 / sub_025",
+        help="Subject, e.g. 25 / 025 / sub_025",
     )
 
     scene_group = parser.add_mutually_exclusive_group(required=True)
     scene_group.add_argument(
         "--scene",
-        help="只处理一个场景，例如 stair_fwd",
+        help="Process a single scene, e.g. stair_fwd",
     )
     scene_group.add_argument(
         "--scenes",
         nargs="+",
-        help="处理多个场景，例如 --scenes stair_fwd stair_bwd",
+        help="Process multiple scenes, e.g. --scenes stair_fwd stair_bwd",
     )
     scene_group.add_argument(
         "--all-scenes",
         action="store_true",
-        help="处理时间记录表中的全部场景",
+        help="Process all scenes listed in the timing sheet",
     )
 
     sensor_group = parser.add_mutually_exclusive_group(required=True)
     sensor_group.add_argument(
         "--sensor",
         choices=list(SENSOR_MAP.keys()),
-        help="只处理一个传感器：G/L1/L2/L3/R1/R2/R3",
+        help="Process only one sensor: G/L1/L2/L3/R1/R2/R3",
     )
     sensor_group.add_argument(
         "--sensors",
         nargs="+",
         choices=list(SENSOR_MAP.keys()),
-        help="处理指定多个传感器，例如 --sensors G L1 L2",
+        help="Process selected sensors, e.g. --sensors G L1 L2",
     )
     sensor_group.add_argument(
         "--all-sensors",
         action="store_true",
-        help="处理全部 7 个传感器",
+        help="Process all seven sensors",
     )
 
     parser.add_argument(
         "--before",
         type=float,
         default=None,
-        help="场景开始时间之前额外保留多少秒；默认 0.5",
+        help="Extra seconds before scene start; default 0.5",
     )
     parser.add_argument(
         "--after",
         type=float,
         default=None,
-        help="场景结束时间之后额外保留多少秒；默认 0.5",
+        help="Extra seconds after scene end; default 0.5",
     )
     parser.add_argument(
         "--padding",
         type=float,
         default=None,
-        help="兼容旧用法：前后统一预留多少秒。例如 --padding 1。若同时给 --before/--after，则对应的 --before/--after 优先。",
+        help="Legacy --padding option; --before/--after take precedence when provided.",
     )
 
     args = parser.parse_args()
@@ -543,13 +543,13 @@ def main():
 
     print("=" * 100)
     print("Rebuild IMU XLSX for selected scenes")
-    print(f"受试者:       {subject}")
-    print(f"场景:         {', '.join(wanted_scenes)}")
-    print(f"传感器:       {', '.join(sensors)}")
-    print(f"拼接 Excel:   {STITCHED_ROOT / subject}")
-    print(f"时间记录表:   {time_file}")
-    print(f"输出目录:     {OUTPUT_ROOT / subject / 'imu'}")
-    print(f"Time window:     before start {before_padding:.3f} 秒，after end {after_padding:.3f} 秒")
+    print(f"Subject:       {subject}")
+    print(f"Scenes:         {', '.join(wanted_scenes)}")
+    print(f"Sensors:       {', '.join(sensors)}")
+    print(f"Merged Excel:   {STITCHED_ROOT / subject}")
+    print(f"Timing sheet:   {time_file}")
+    print(f"Output directory:     {OUTPUT_ROOT / subject / 'imu'}")
+    print(f"Time window:     before start {before_padding:.3f} s，after end {after_padding:.3f} s")
     print("Existing target XLSX files will be overwritten")
     print("=" * 100)
 
