@@ -11,16 +11,16 @@ import pandas as pd
 
 import os
 
-# 以后只需要修改这里
+# Only this section needs to be edited
 SUB_ID = ("sub_002")
 
-# 数据根目录
+# Data root directory
 BASE_DIR = r"E:\data"
 
-# 当前被试文件夹
+# Current participant directory
 SUB_DIR = os.path.join(BASE_DIR, f"{SUB_ID}_label")
 
-# 自动生成 xyz2 的 fwd/bwd 输入文件路径
+# Generate fwd/bwd input paths for xyz2
 INPUT_FILES = [
     os.path.join(
         SUB_DIR,
@@ -37,7 +37,7 @@ FORCE_ZERO_FROM_LAST_RIGHT_LABEL3 = True
 
 
 # ============================================================
-# 1. XYZ2 标签序列
+# 1. XYZ2 label sequence
 # ============================================================
 
 XYZ2_LABELS = {
