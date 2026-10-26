@@ -36,7 +36,7 @@ RANDOM_SEED = 2026
 # Scene definitions
 # =====================================================
 
-# 基础/单方向场景
+# Basic or single-direction scenes
 ONE_D_SCENES = [
 
     "walk",
@@ -53,7 +53,7 @@ ONE_D_SCENES = [
 ]
 
 
-# 二维组合场景
+# Two-dimensional combined scenes
 XY_SCENES = [
 
     "xy1",
@@ -66,7 +66,7 @@ XY_SCENES = [
 ]
 
 
-# 三维组合场景
+# Three-dimensional combined scenes
 XYZ_SCENES = [
 
     "xyz1",
@@ -76,7 +76,7 @@ XYZ_SCENES = [
 ]
 
 
-# 所有已定义地形场景
+# All defined terrain scenes
 ALL_SCENES = (
 
     ONE_D_SCENES
@@ -208,7 +208,7 @@ def save_split(
 
 
     # -------------------------
-    # 保存 pkl
+    # Save the pkl file
     # -------------------------
 
     pkl_path = os.path.join(
@@ -229,7 +229,7 @@ def save_split(
 
 
     # -------------------------
-    # 保存 CSV 索引
+    # Save the CSV index
     # -------------------------
 
     rows = []
@@ -613,7 +613,7 @@ def scene_split_generator(
 
 
     # -------------------------
-    # 先按 scene 分 train/test
+    # Split train/test by scene first
     # -------------------------
 
     for sub, tasks in dataset.items():
@@ -640,7 +640,7 @@ def scene_split_generator(
 
 
     # -------------------------
-    # 从 train 中抽 val
+    # Draw validation samples from training
     # -------------------------
 
     rng = random.Random(
@@ -679,7 +679,7 @@ def scene_split_generator(
         )
 
 
-        # 避免把该 subject 的 train 全抽空
+        # Avoid exhausting the participant's training samples
         if (
             len(tasks) > 1
             and
