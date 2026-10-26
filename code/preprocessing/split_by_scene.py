@@ -167,9 +167,13 @@ def find_scene_time_file(subject):
         if p.exists():
             return p
 
-    candidates = sorted(subject_dir.glob("Scene timing table*.xlsm") or subject_dir.glob("\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868*.xlsm"))
+    candidates = sorted(subject_dir.glob("Scene timing table*.xlsm"))
     if not candidates:
-        candidates = sorted(subject_dir.glob("Scene timing table*.xlsx") or subject_dir.glob("\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868*.xlsx"))
+        candidates = sorted(subject_dir.glob("\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868*.xlsm"))
+    if not candidates:
+        candidates = sorted(subject_dir.glob("Scene timing table*.xlsx"))
+    if not candidates:
+        candidates = sorted(subject_dir.glob("\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868*.xlsx"))
 
     if not candidates:
         raise FileNotFoundError(
