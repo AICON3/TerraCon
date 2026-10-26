@@ -69,10 +69,10 @@ class LSTMTerrainRegression(nn.Module):
                     nn.init.zeros_(param.data)
 
     def forward(self, x):
-        """输入:
+        """Input:
 
-            x: [B, 200, 42] (IMU 序列)
-        输出:
+            x: [B, 200, 42] (IMU sequence)
+        Output:
             dict: {"terrain": [B, 30, 6]}
         """
         # Clean invalid values
@@ -115,5 +115,5 @@ if __name__ == "__main__":
     x = torch.randn(8, 200, 42)
     out = model(x)
 
-    print("LSTM 验证成功:")
+    print("LSTM validation passed:")
     print("terrain output shape:", out["terrain"].shape)  # torch.Size([8, 30, 6])
