@@ -1,0 +1,35 @@
+name: Sanitize review workbooks
+
+on:
+  push:
+    branches:
+      - docs/review-cleanup-2026-10
+
+permissions:
+  contents: write
+
+jobs:
+  sanitize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Remove personal spreadsheet properties
+        run: |
+          python tools/sanitize_xlsx_metadata.py \
+            "processed data/information/equipment_information.xlsx" \
+            "processed data/information/subject_information.xlsx"
+      - name: Commit sanitized copies to review branch
+        run: |
+          if ! git diff --quiet -- \
+            "processed data/information/equipment_information.xlsx" \
+            "processed data/information/subject_information.xlsx"; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- "processed data/information/equipment_information.xlsx" \
+              "processed data/information/subject_information.xlsx"
+            git commit -m "Remove spreadsheet author metadata"
+            git push origin HEAD:docs/review-cleanup-2026-10
+          fi
