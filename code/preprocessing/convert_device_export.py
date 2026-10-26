@@ -70,6 +70,7 @@ DATA_COLUMNS = [
     "Source byte offset",
     "Sync header valid",
     "Timestamp valid",
+    "timestamp",
     "Raw timestamp string",
     "Year",
     "Month",
@@ -171,6 +172,11 @@ def parse_frame(chunk: bytes, byte_offset: int, source_filename: str, file_frame
     )
 
     time_valid = check_time_valid(year, month, day, hour, minute, second, millisecond)
+    timestamp = (
+        datetime(year, month, day, hour, minute, second, millisecond * 1000)
+        if time_valid
+        else None
+    )
 
     return {
         "source_filename": source_filename,
@@ -178,6 +184,7 @@ def parse_frame(chunk: bytes, byte_offset: int, source_filename: str, file_frame
         "byte_offset": byte_offset,
         "sync_ok": sync_ok,
         "time_valid": time_valid,
+        "timestamp": timestamp,
         "timestamp_raw": timestamp_raw,
         "year": year,
         "month": month,
@@ -343,6 +350,7 @@ class ExcelStreamWriter:
             rec["byte_offset"],
             rec["sync_ok"],
             rec["time_valid"],
+            rec["timestamp"],
             rec["timestamp_raw"],
             rec["year"],
             rec["month"],
