@@ -15,7 +15,7 @@ SUBJECT_ID = "sub_002"
 # Project root directory
 PROJECT_ROOT = r"E:\data"
 
-# 当前要处理的地形名称
+# Name of the terrain to process
 TERRAIN_NAME = "xyz3"
 
 # Automatically generate the input directory
@@ -44,7 +44,7 @@ FORCE_ZERO_FROM_LAST_RIGHT_LABEL3 = True
 
 
 # ============================================================
-# 1. XYZ3 标签序列
+# 1. XYZ3 label sequence
 # ============================================================
 
 XYZ3_LABELS = {
