@@ -26,7 +26,7 @@ class TemporalBlock(nn.Module):
         super().__init__()
         padding = (kernel_size - 1) * dilation
 
-        # 因果卷积分支 1
+        # Causal convolution branch 1
         self.conv1 = nn.Conv1d(
             in_channels,
             out_channels,
@@ -38,7 +38,7 @@ class TemporalBlock(nn.Module):
         self.relu1 = nn.ReLU()
         self.dropout1 = nn.Dropout(dropout)
 
-        # 因果卷积分支 2
+        # Causal convolution branch 2
         self.conv2 = nn.Conv1d(
             out_channels,
             out_channels,
@@ -50,7 +50,7 @@ class TemporalBlock(nn.Module):
         self.relu2 = nn.ReLU()
         self.dropout2 = nn.Dropout(dropout)
 
-        # 残差对齐
+        # Residual alignment
         if in_channels != out_channels:
             self.downsample = nn.Conv1d(in_channels, out_channels, kernel_size=1)
         else:
@@ -61,7 +61,7 @@ class TemporalBlock(nn.Module):
     def forward(self, x):
         residual = x
 
-        # 保证因果性：切掉右侧由 padding 产生的未来步
+        # Preserve causality by removing right-side steps introduced by padding
         out = self.conv1(x)
         out = out[:, :, : x.size(2)]
         out = self.bn1(out)
@@ -108,7 +108,7 @@ class TCNTerrainRegression(nn.Module):
         layers = []
         in_ch = input_dim
 
-        # 堆叠因果膨胀卷积
+        # Stack causal dilated convolutions
         for i, out_ch in enumerate(hidden_channels):
             layers.append(
                 TemporalBlock(
@@ -124,7 +124,7 @@ class TCNTerrainRegression(nn.Module):
         self.encoder = nn.Sequential(*layers)
         self.feature_dim = in_ch
 
-        # 回归头：从历史汇聚特征映射到未来 30 步的地形参数
+        # Regression head maps historical features to terrain parameters for the next 30 steps
         self.terrain_head = nn.Sequential(
             nn.Linear(self.feature_dim, 128),
             nn.ReLU(),
@@ -136,27 +136,27 @@ class TCNTerrainRegression(nn.Module):
 
     def forward(self, x):
         """输入: x: [B, 200, 42]"""
-        # 1. 异常值清理
+        # 1. Clean invalid values
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
 
-        # 2. 变换为 Conv1d 格式: [B, T, C] -> [B, C, T]
+        # 2. Convert to Conv1d shape: [B, T, C] -> [B, C, T]
         x = x.transpose(1, 2)
 
-        # 3. TCN 提取时序因果特征: [B, feature_dim, T]
+        # 3. TCN extracts causal temporal features: [B, feature_dim, T]
         feature = self.encoder(x)
 
-        # 4. 提取第 200 帧末尾隐状态（凝聚了 200 帧所有因果历史信息）
+        # 4. Extract the final hidden state representing the full 200-frame causal history
         # [B, feature_dim, 200] -> [B, feature_dim]
         last_feature = feature[:, :, -1]
 
-        # 5. 投影到未来 30 步的地形 [B, output_len, terrain_dim]
+        # 5. Predict terrain for the next 30 steps [B, output_len, terrain_dim]
         terrain = self.terrain_head(last_feature)
         terrain = terrain.view(x.size(0), self.output_len, self.terrain_dim)
 
         return {"terrain": terrain}
 
 
-# 兼容别名
+# Compatibility aliases
 TCNMultiTask = TCNTerrainRegression
 
 
