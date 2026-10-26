@@ -672,7 +672,7 @@ def sample_dt(t):
 
     if len(d) == 0:
         raise ValueError(
-            "无法从 time_s 计算采样周期"
+            "Cannot determine the sampling interval from time_s"
         )
 
     return float(
@@ -716,7 +716,7 @@ def shift_sensor_columns(
 
     if not cols:
         raise KeyError(
-            f"未找到 {prefix}_* 数据列"
+            f"No {prefix}_* data columns were found"
         )
 
     if shift_samples != 0:
@@ -763,7 +763,7 @@ def common_trim_range(
 
     if trim_start >= trim_end:
         raise ValueError(
-            "位移过大，没有共同有效数据区间"
+            "The shift leaves no common valid data interval"
         )
 
     return (
@@ -1382,7 +1382,7 @@ def build_ui(
 
     if missing:
         raise KeyError(
-            "缺少列：\n"
+            "Missing columns:\n"
             + "\n".join(missing)
         )
 
@@ -1466,7 +1466,7 @@ def build_ui(
 
     try:
         fig1.canvas.manager.set_window_title(
-            "STEP1 - Pelvis固定，左右Shank对齐"
+            "STEP1 - Align left and right shanks to the fixed pelvis"
         )
     except Exception:
         pass
@@ -1517,10 +1517,10 @@ def build_ui(
     )
 
     titles1 = [
-        "LEFT SHANK — 可左右拖动",
-        "RIGHT SHANK — 可左右拖动",
-        "PELVIS X — 固定不动",
-        "PELVIS Y — 固定不动",
+        "LEFT SHANK — drag horizontally",
+        "RIGHT SHANK — drag horizontally",
+        "PELVIS X — fixed",
+        "PELVIS Y — fixed",
     ]
 
     for a, title in zip(
@@ -1668,7 +1668,7 @@ def build_ui(
 
     try:
         fig2.canvas.manager.set_window_title(
-            "STEP2 - 单腿内部对齐"
+            "STEP2 - Align segments within each leg"
         )
     except Exception:
         pass
@@ -1983,7 +1983,7 @@ def build_ui(
         if role == "pelvis":
             if evt.button == 1:
                 print(
-                    "[STEP1] Pelvis 是固定参考，不移动。"
+                    "[STEP1] The pelvis is a fixed reference and cannot be moved."
                 )
             return
 
