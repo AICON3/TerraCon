@@ -3,15 +3,15 @@
 #
 # 基于 evaluation/evaluate_angel_gait.py 改写，用于 5 折训练产物的评估。
 #
-# 数据路径:
+# Data path:
 #   <base>/splits/<fold_root>/<fold>/test.pkl
 #   例: splits/subject_5fold_split/fold3/test.pkl
 #
-# 权重路径:
+# Checkpoint path:
 #   <base>/train/checkpoints/<Model>/<fold>_angle_gait_<Model>/best_model.pth
 #   例: train/checkpoints/GPT4TS/fold3_angle_gait_GPT4TS/best_model.pth
 #
-# 相对 v1 的变化:
+# Changes relative to v1:
 #   1. 权重目录默认按 <fold>_angle_gait_<Model> 解析（v1 以 foldN 优先），
 #      同时保留 <fold_root>_<fold>_angle_gait_<Model> 与裸 <fold> 作为回退
 #   2. --folds 默认自动发现（先看 splits/<fold_root>/，再看 checkpoints/<Model>/）
@@ -21,7 +21,7 @@
 #      而不是抛出上百行 RuntimeError（--strict 可改回直接报错）
 #   5. BASE_DIR 默认自动定位到脚本所在工程，本机与服务器都能直接跑
 #
-# 评估指标与单折输出文件同 evaluate_angel_gait.py，另外增加跨折 mean/std 汇总。
+# Metrics and per-fold outputs match evaluate_angel_gait.py, with additional cross-fold mean/std summaries.
 ############################################################
 
 
@@ -267,17 +267,17 @@ MODEL_MAP = {
 }
 
 
-# 训练时使用的权重目录名模板
+# Checkpoint directory naming template used during training
 
 DEFAULT_CKPT_TEMPLATE = "{fold}_angle_gait_{model}"
 
 
-# 数据目录默认层级
+# Default data-directory hierarchy
 
 DEFAULT_FOLD_ROOT = "subject_5fold_split"
 
 
-# 跨折汇总指标
+# Cross-fold summary metrics
 
 SUMMARY_METRICS = [
 
@@ -3337,7 +3337,7 @@ def main():
             )
 
             ####################################################
-            # 断点续跑
+            # Resume an interrupted run
             ####################################################
 
             existing_summary = os.path.join(
