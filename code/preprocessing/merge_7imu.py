@@ -1,5 +1,5 @@
-# Seven-IMU absolute-time alignment v6
-# Do not restrict the data to the common time interval or trim the first three seconds.
+# 7 IMU absolute time alignment v6
+# Do not restrict to the common time interval or trim the first three seconds.
 # Build a 100 Hz timeline from the union of all IMU timestamps.
 
 import os
@@ -83,7 +83,7 @@ def process_task(input_root, output_root, subject, task, threshold):
         data[sensor] = df
         qc[sensor] = info
 
-    # Use the union of sensor timestamps so valid data outside the common interval is retained.
+    # Use the union of timestamps and retain valid data.
     timeline = pd.DataFrame({
         "timestamp": pd.date_range(
             min(x.timestamp.min() for x in data.values()),
