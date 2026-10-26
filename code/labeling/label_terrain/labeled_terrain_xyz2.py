@@ -100,7 +100,7 @@ def read_excel_auto_sheet(input_file):
     print("=" * 80)
     print("[Excel worksheet inspection]")
     print(f"File: {input_file}")
-    print(f"工作表: {xls.sheet_names}")
+    print(f"Worksheet: {xls.sheet_names}")
 
     preferred_sheets = ["data", "Data", "DATA"]
 
@@ -113,13 +113,13 @@ def read_excel_auto_sheet(input_file):
 
     if sheet_name is None:
         sheet_name = xls.sheet_names[0]
-        print(f"[提示] 未找到 data/Data/DATA，自动读取第一个工作表: {sheet_name}")
+        print(f"[Info] data/Data/DATA not found; reading the first worksheet: {sheet_name}")
     else:
-        print(f"[提示] 使用工作表: {sheet_name}")
+        print(f"[Info] Using worksheet: {sheet_name}")
 
     df = pd.read_excel(input_file, sheet_name=sheet_name)
 
-    print(f"[Read OK] 数据维度: {df.shape[0]} 行 × {df.shape[1]} 列")
+    print(f"[Read OK] Data shape: {df.shape[0]} rows × {df.shape[1]} columns")
 
     if "time_s" in df.columns:
         print(f"[Time range] {df['time_s'].iloc[0]} s -> {df['time_s'].iloc[-1]} s")
@@ -135,7 +135,7 @@ def read_excel_auto_sheet(input_file):
 
 def detect_xyz2_direction_from_filename(input_file):
     """
-    从文件名判断 xyz2_fwd / xyz2_bwd。
+    Determine from filename: xyz2_fwd / xyz2_bwd。
     """
     basename = os.path.basename(input_file).lower()
 
@@ -146,7 +146,7 @@ def detect_xyz2_direction_from_filename(input_file):
         return "xyz2_bwd"
 
     raise ValueError(
-        "无法从文件名判断方向，请确保文件名包含 xyz2_fwd 或 xyz2_bwd。\n"
+        "Cannot determine direction from the filename; ensure it contains xyz2_fwd or xyz2_bwd。\n"
         f"当前File: {input_file}"
     )
 
@@ -174,7 +174,7 @@ def extract_subject_id(input_file):
 
 def build_output_file(input_file):
     """
-    输出目录：
+    Output directory:
         sub_xxx_labeled_terrain
 
     Output file:
@@ -209,7 +209,7 @@ def build_output_file(input_file):
 def save_excel_safely(df, output_file, sheet_name="data"):
     """
     Save the Excel workbook safely.
-    如果目标文件被打开，自动另存为 _v2, _v3...
+    If the target is open, automatically save to _v2, _v3, etc.
     """
     out_dir = os.path.dirname(output_file)
 
@@ -228,9 +228,9 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
     except PermissionError:
         print("=" * 80)
-        print("[警告] 输出文件无法写入，可能正在被 Excel/WPS 打开：")
+        print("[Warning] Cannot write output; it may be open in Excel/WPS:")
         print(output_file)
-        print("[处理] 自动尝试另存为新文件名。")
+        print("[Processing] Trying an alternative output filename.")
 
         folder = os.path.dirname(output_file)
         base = os.path.splitext(os.path.basename(output_file))[0]
@@ -270,7 +270,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
         and previous row != label_value
     """
     if label_col not in df.columns:
-        raise KeyError(f"缺少列: {label_col}")
+        raise KeyError(f"Missing column: {label_col}")
 
     label = df[label_col].to_numpy()
 
@@ -303,7 +303,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 def collect_xyz2_terrain_events(df):
     """
-    xyz2 事件规则：
+    xyz2 event rules:
 
     Initialize to 0.
 
@@ -318,16 +318,16 @@ def collect_xyz2_terrain_events(df):
 
     Event 4 and later:
         After the third event,
-        l_label == 3 或 r_label == 3
+        l_label == 3 or r_label == 3
 
     Finally:
-        最后一个 r_label == 3 起始事件之后强制归 0。
+        Force labels to zero after the final r_label == 3 start event.
     """
     if "l_label" not in df.columns:
-        raise KeyError("缺少列: l_label")
+        raise KeyError("Missing column: l_label")
 
     if "r_label" not in df.columns:
-        raise KeyError("缺少列: r_label")
+        raise KeyError("Missing column: r_label")
 
     l3_events = detect_label_value_rising_edges(
         df=df,
@@ -345,12 +345,12 @@ def collect_xyz2_terrain_events(df):
 
     if len(l3_events) < 2:
         raise RuntimeError(
-            "l_label == 3 的起始事件少于 2 个，无法执行 xyz2 贴标规则。"
+            "l_label == 3 has fewer than two start events, so cannot apply xyz2 labeling rules."
         )
 
     if len(r3_events) < 1:
         raise RuntimeError(
-            "r_label == 3 的起始事件少于 1 个，无法执行 xyz2 贴标规则。"
+            "r_label == 3 has fewer than one start event, so cannot apply xyz2 labeling rules."
         )
 
     events = []
@@ -372,7 +372,7 @@ def collect_xyz2_terrain_events(df):
 
     if len(r3_after_second) == 0:
         raise RuntimeError(
-            "Second l_label == 3 后没有找到 r_label == 3。"
+            "No r_label == 3 found after the second l_label == 3."
         )
 
     third_event = dict(r3_after_second[0])
@@ -412,10 +412,10 @@ def collect_xyz2_terrain_events(df):
 
 def get_xyz2_sequences(direction):
     """
-    返回需要贴的 6 组标签。
+    Return the six label sequences to apply.
     """
     if direction not in XYZ2_LABELS:
-        raise ValueError(f"没有找到方向 {direction} 的标签。")
+        raise ValueError(f"No labels found for direction {direction}.")
 
     item = XYZ2_LABELS[direction]
 
@@ -435,31 +435,31 @@ def get_xyz2_sequences(direction):
 
 def check_event_label_count_match(events, sequences, direction):
     """
-    检查事件数量和每个标签序列长度是否一致。
+    Check that event counts match the length of each label sequence.
     """
     event_count = len(events)
 
     print("=" * 80)
-    print(f"[数量检查] {direction}")
+    print(f"[Count validation] {direction}")
     print(f"Event count: {event_count}")
 
     all_ok = True
 
     for col, seq in sequences.items():
         label_count = len(seq)
-        print(f"{col}: 标签数量 = {label_count}")
+        print(f"{col}: Label count = {label_count}")
 
         if label_count != event_count:
             all_ok = False
             print(
-                f"[不一致] {col}: "
-                f"事件数量 {event_count}, 标签数量 {label_count}"
+                f"[Mismatch] {col}: "
+                f"Event count {event_count}, label count {label_count}"
             )
 
     if all_ok:
-        print("[检查通过] 所有标签数量均与事件数量一致。")
+        print("[Validation passed] All label counts match event counts.")
     else:
-        print("[检查失败] 标签数量和事件数量不一致，将跳过当前文件，不生成新文件。")
+        print("[Validation failed] Counts differ; skip this file without generating output.")
 
     print("=" * 80)
 
@@ -486,8 +486,8 @@ def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_lab
     """
     if len(events) != len(terrain_sequence):
         raise ValueError(
-            f"{output_col}: 事件数量 {len(events)} "
-            f"和标签数量 {len(terrain_sequence)} 不一致。"
+            f"{output_col}: Event count {len(events)} "
+            f"和label count {len(terrain_sequence)} do not match."
         )
 
     n = len(df)
@@ -532,7 +532,7 @@ def force_zero_from_last_right_label3(df, output_cols):
     )
 
     if len(r3_events) == 0:
-        print("[警告] 未找到 r_label == 3 起始事件，无法执行最后归 0。")
+        print("[Warning] No r_label == 3 start event was found; cannot apply the final reset.")
         return df
 
     last_right_idx = int(r3_events[-1]["idx"])
@@ -540,12 +540,12 @@ def force_zero_from_last_right_label3(df, output_cols):
     if "time_s" in df.columns:
         t = df.loc[last_right_idx, "time_s"]
         print(
-            f"[Final reset to zero] 从最后一个 r_label == 3 开始置 0，"
+            f"[Final reset to zero] Set labels to 0 from the final r_label == 3 event; "
             f"idx={last_right_idx}, time={t:.4f}s"
         )
     else:
         print(
-            f"[Final reset to zero] 从最后一个 r_label == 3 开始置 0，"
+            f"[Final reset to zero] Set labels to 0 from the final r_label == 3 event; "
             f"idx={last_right_idx}"
         )
 
@@ -641,7 +641,7 @@ def process_one_file(input_file):
 
     direction = detect_xyz2_direction_from_filename(input_file)
 
-    print(f"[Direction detection] 当前文件Direction: {direction}")
+    print(f"[Direction detection] Current direction: {direction}")
 
     df, sheet_name = read_excel_auto_sheet(input_file)
 
@@ -664,7 +664,7 @@ def process_one_file(input_file):
 
     sequences = get_xyz2_sequences(direction)
 
-    print(f"[Event detection] {direction} 共检测到地形切换事件: {len(events)} 个")
+    print(f"[Event detection] {direction} detected terrain transition events: {len(events)}")
 
     ok = check_event_label_count_match(
         events=events,
@@ -674,8 +674,8 @@ def process_one_file(input_file):
 
     if not ok:
         print("=" * 80)
-        print(f"[跳过] {direction} 标签数量和事件数量对不上，不生成新文件。")
-        print(f"输入File: {input_file}")
+        print(f"[Skipped] {direction} label count differs from event count; no output generated.")
+        print(f"Input file: {input_file}")
         print("=" * 80)
         return None
 
@@ -713,10 +713,10 @@ def process_one_file(input_file):
     )
 
     print("=" * 80)
-    print("[完成]")
+    print("[Completed]")
     print(f"Direction: {direction}")
-    print(f"输入File: {input_file}")
-    print(f"输出File: {actual_output_file}")
+    print(f"Input file: {input_file}")
+    print(f"Output file: {actual_output_file}")
     print("Added columns:")
     print("  terrain_x_single_label")
     print("  terrain_y_single_label")
@@ -735,7 +735,7 @@ def process_one_file(input_file):
 
 def main():
     print("=" * 100)
-    print("[XYZ2 地形标签批处理开始]")
+    print("[XYZ2 terrain batch labeling started]")
     print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
@@ -744,7 +744,7 @@ def main():
     for input_file in INPUT_FILES:
         if not os.path.exists(input_file):
             print("=" * 80)
-            print("[警告] 文件不存在，跳过：")
+            print("[Warning] File not found; skipping:")
             print(input_file)
             print("=" * 80)
             continue
@@ -757,7 +757,7 @@ def main():
 
         except Exception as e:
             print("=" * 80)
-            print("[错误] 当前文件处理失败，已跳过，不影响后续文件。")
+            print("[Error] Processing failed for this file; skipping and continuing.")
             print(f"File: {input_file}")
             print(f"Error type: {type(e).__name__}")
             print(f"Error message: {e}")
