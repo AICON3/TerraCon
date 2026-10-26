@@ -265,7 +265,7 @@ MODEL_MAP = {
 }
 
 
-# 5 折评估默认只跑这些折
+# Default folds for five-fold evaluation
 
 DEFAULT_FOLDS = [
 
@@ -282,12 +282,12 @@ DEFAULT_FOLDS = [
 ]
 
 
-# 数据目录默认层级
+# Default data-directory hierarchy
 
 DEFAULT_FOLD_ROOT = "subject_5fold_split"
 
 
-# 跨折汇总使用的指标列
+# Metric columns for cross-fold summaries
 
 SUMMARY_METRICS = [
 
@@ -536,7 +536,7 @@ def candidate_ckpt_names(
 
         )
 
-    # 去重且保持顺序
+    # Remove duplicates while preserving order
 
     unique = []
 
@@ -1274,7 +1274,7 @@ def evaluate_subject_task(
 ############################################################
 # Save Results
 #
-# 单折输出与原脚本一致（7 个文件）。
+# Per-fold output matches the original script (seven files).
 ############################################################
 
 
@@ -2337,7 +2337,7 @@ def main():
             )
 
             ####################################################
-            # 断点续跑
+            # Resume an interrupted run
             ####################################################
 
             existing_summary = os.path.join(
