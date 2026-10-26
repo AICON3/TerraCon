@@ -6,13 +6,13 @@ import pandas as pd
 
 
 # ============================================================
-# 0. 配置区
+# 0. Configuration
 # ============================================================
 
-# 只需要改这里
+# Only this section needs to be changed
 SUBJECT_ID = "sub_041"
 
-# 项目根目录
+# Project root directory
 PROJECT_ROOT = r"E:\data"
 
 
@@ -20,25 +20,25 @@ PROJECT_ROOT = r"E:\data"
 TERRAIN_NAMES = ["xy5"]
 
 # ============================================================
-# 想处理 fwd / bwd 哪个方向，也可以在这里改
+# Select whether to process the fwd or bwd direction here
 # ============================================================
 
-# 只处理 fwd
+# Process fwd only
 # DIRECTIONS = ["fwd"]
 
-# 只处理 bwd
+# Process bwd only
 # DIRECTIONS = ["bwd"]
 
-# 同时处理 fwd 和 bwd
+# Process both fwd and bwd
 DIRECTIONS = ["fwd", "bwd"]
 
-# 自动生成输入文件夹
+# Automatically generate the input directory
 INPUT_DIR = os.path.join(
     PROJECT_ROOT,
     f"{SUBJECT_ID}_label",
 )
 
-# 自动生成输入文件
+# Automatically generate input file paths
 INPUT_FILES = [
     os.path.join(
         INPUT_DIR,
@@ -48,16 +48,16 @@ INPUT_FILES = [
     for direction in DIRECTIONS
 ]
 
-# 是否打印详细事件映射
+# Whether to print detailed event mappings
 PRINT_EVENTS = False
 
-# 是否执行最后强制归 0
+# Whether to force labels to 0 after the final event
 FORCE_ZERO_FROM_LAST_RIGHT_LABEL3 = True
 
 
 
 # ============================================================
-# 1. XY1 ~ XY6 标签文本
+# 1. XY1–XY6 label sequences
 # ============================================================
 
 LABEL_TEXT = r"""
@@ -161,7 +161,7 @@ y:50, 75, 55, 85, 65, 45, 95, 55, 85, 65, 45, 95, 75, 85, 65, 45, 95, 75, 55, 65
 
 
 # ============================================================
-# 2. 解析标签文本
+# 2. Parse label sequences
 # ============================================================
 
 def parse_number_list(s):
@@ -250,7 +250,7 @@ LABELS = build_xy_label_dict()
 
 
 # ============================================================
-# 3. Excel 自动读取
+# 3. Automatic Excel loading
 # ============================================================
 
 def read_excel_auto_sheet(input_file):
@@ -295,7 +295,7 @@ def read_excel_auto_sheet(input_file):
 
 
 # ============================================================
-# 4. 文件名方向判断
+# 4. Determine direction from the filename
 # ============================================================
 
 def detect_xy_direction_from_filename(input_file):
@@ -324,7 +324,7 @@ def detect_xy_direction_from_filename(input_file):
 
 
 # ============================================================
-# 5. 输出路径
+# 5. Output paths
 # ============================================================
 
 def extract_subject_id(input_file):
@@ -408,7 +408,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
 
 # ============================================================
-# 6. 事件检测
+# 6. Event detection
 # ============================================================
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
@@ -535,7 +535,7 @@ def collect_xy_terrain_events(df):
 
 
 # ============================================================
-# 7. 标签获取与数量检查
+# 7. Retrieve labels and validate counts
 # ============================================================
 
 def get_xy_sequences(direction):
@@ -630,7 +630,7 @@ def print_count_summary(direction, sequences, events, l3_events, r3_events):
 
 
 # ============================================================
-# 8. 贴标签
+# 8. Assign labels
 # ============================================================
 
 def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_label=0):
@@ -691,7 +691,7 @@ def force_zero_from_last_right_label3(df, output_cols):
 
 
 # ============================================================
-# 9. 可选事件映射打印
+# 9. Optional event-mapping output
 # ============================================================
 
 def print_event_mapping(events, sequence, title):
@@ -735,7 +735,7 @@ def print_event_mapping(events, sequence, title):
 
 
 # ============================================================
-# 10. 处理单个文件
+# 10. Process a single file
 # ============================================================
 
 def process_one_file(input_file):
@@ -756,13 +756,13 @@ def process_one_file(input_file):
             + "\n".join(missing)
         )
 
-    # 内部检测事件，不打印寻找过程
+    # Detect events internally without printing the search process
     events, l3_events, r3_events = collect_xy_terrain_events(df)
 
-    # 获取你给的标签序列
+    # Retrieve the specified label sequences
     sequences = get_xy_sequences(direction)
 
-    # 打印数量结果
+    # Print count results
     print_count_summary(
         direction=direction,
         sequences=sequences,
@@ -771,7 +771,7 @@ def process_one_file(input_file):
         r3_events=r3_events,
     )
 
-    # 数量检查
+    # Validate counts
     ok = check_event_label_count_match(
         events=events,
         sequences=sequences,
@@ -786,7 +786,7 @@ def process_one_file(input_file):
             f"原始标签数量/你给的标签数量: {seq_lens}"
         )
 
-    # 可选打印事件映射
+    # Optionally print event mappings
     if PRINT_EVENTS:
         for col, seq in sequences.items():
             print_event_mapping(
@@ -795,7 +795,7 @@ def process_one_file(input_file):
                 title=f"[{direction} {col} 标签映射]",
             )
 
-    # 贴标签
+    # Assign labels
     for col, seq in sequences.items():
         df = apply_terrain_sequence(
             df=df,
@@ -805,7 +805,7 @@ def process_one_file(input_file):
             initial_label=0,
         )
 
-    # 最后从最后一个 r_label == 3 开始归 0
+    # Set labels to 0 from the final r_label == 3 event onward
     if FORCE_ZERO_FROM_LAST_RIGHT_LABEL3:
         df = force_zero_from_last_right_label3(
             df=df,
@@ -833,7 +833,7 @@ def process_one_file(input_file):
 
 
 # ============================================================
-# 11. 主程序
+# 11. Main entry point
 # ============================================================
 
 def main():
