@@ -274,21 +274,21 @@ def read_excel_auto_sheet(input_file):
         raise RuntimeError(
             "当前文件不是有效的 .xlsx 文件，可能文件损坏，"
             "或者只是被改名成 .xlsx。\n"
-            f"文件: {input_file}\n"
+            f"File: {input_file}\n"
             "Open the file in Excel/WPS and save it as a valid Excel workbook (*.xlsx)."
         )
 
     except Exception as e:
         raise RuntimeError(
             "Failed to read the Excel workbook.\n"
-            f"文件: {input_file}\n"
-            f"错误类型: {type(e).__name__}\n"
-            f"错误信息: {e}"
+            f"File: {input_file}\n"
+            f"Error type: {type(e).__name__}\n"
+            f"Error message: {e}"
         )
 
     print("=" * 80)
-    print("[Excel 工作表检测]")
-    print(f"文件: {input_file}")
+    print("[Excel worksheet inspection]")
+    print(f"File: {input_file}")
     print(f"工作表: {xls.sheet_names}")
 
     preferred_sheets = ["data", "Data", "DATA"]
@@ -308,10 +308,10 @@ def read_excel_auto_sheet(input_file):
 
     df = pd.read_excel(input_file, sheet_name=sheet_name)
 
-    print(f"[读取成功] 数据维度: {df.shape[0]} 行 × {df.shape[1]} 列")
+    print(f"[Read OK] 数据维度: {df.shape[0]} 行 × {df.shape[1]} 列")
 
     if "time_s" in df.columns:
-        print(f"[时间范围] {df['time_s'].iloc[0]} s -> {df['time_s'].iloc[-1]} s")
+        print(f"[Time range] {df['time_s'].iloc[0]} s -> {df['time_s'].iloc[-1]} s")
 
     print("=" * 80)
 
@@ -347,7 +347,7 @@ def detect_z234_direction_from_filename(input_file):
     raise ValueError(
         "无法从文件名判断方向，请确保文件名包含：\n"
         "z2_fwd / z2_bwd / z3_fwd / z3_bwd / z4_fwd / z4_bwd\n"
-        f"当前文件: {input_file}"
+        f"当前File: {input_file}"
     )
 
 
@@ -431,7 +431,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
             sheet_name=sheet_name if sheet_name else "data",
         )
 
-        print(f"[保存成功] {output_file}")
+        print(f"[Saved] {output_file}")
         return output_file
 
     except PermissionError:
@@ -454,7 +454,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
                     sheet_name=sheet_name if sheet_name else "data",
                 )
 
-                print(f"[保存成功] {new_file}")
+                print(f"[Saved] {new_file}")
                 return new_file
 
             except PermissionError:
@@ -657,7 +657,7 @@ def get_z234_sequences(direction):
     if direction == "z4_bwd":
         return Z4_BWD_SINGLE_TERRAIN_SEQUENCE, Z4_BWD_SAME_TERRAIN_SEQUENCE
 
-    raise ValueError(f"未知方向: {direction}")
+    raise ValueError(f"未知Direction: {direction}")
 
 
 # ============================================================
@@ -675,8 +675,8 @@ def check_event_label_count_match(events, sequence, sequence_name):
 
     print("=" * 80)
     print(f"[数量检查] {sequence_name}")
-    print(f"事件数量: {event_count}")
-    print(f"标签数量: {label_count}")
+    print(f"Event count: {event_count}")
+    print(f"Label count: {label_count}")
 
     if event_count == label_count:
         print("[检查通过] 事件数量和标签数量一致。")
@@ -711,7 +711,7 @@ def apply_terrain_sequence(
     """
     Assign terrain labels from the event sequence.
 
-    贴标Logic:
+    Labeling logic:
         Before the first event:
             initial_label
 
@@ -809,13 +809,13 @@ def force_zero_from_last_left_label3(df, output_col):
     if "time_s" in df.columns:
         t = df.loc[last_left_idx, "time_s"]
         print(
-            f"[最后归0] {output_col}: "
+            f"[Final reset to zero] {output_col}: "
             f"从最后一个 l_label == 3 开始置 0，"
             f"idx={last_left_idx}, time={t:.4f}s"
         )
     else:
         print(
-            f"[最后归0] {output_col}: "
+            f"[Final reset to zero] {output_col}: "
             f"从最后一个 l_label == 3 开始置 0，"
             f"idx={last_left_idx}"
         )
@@ -863,8 +863,8 @@ def print_event_mapping(events, sequence, title):
         )
 
     print("-" * 130)
-    print(f"事件数量: {len(events)}")
-    print(f"标签数量: {len(sequence)}")
+    print(f"Event count: {len(events)}")
+    print(f"Label count: {len(sequence)}")
 
     if len(events) == len(sequence):
         print("[检查] 事件数量与标签数量一致。")
@@ -882,7 +882,7 @@ def print_event_mapping(events, sequence, title):
 
 def print_label_statistics(df):
     print("=" * 80)
-    print("[原始步态标签统计]")
+    print("[Original gait label statistics]")
 
     for col in ["l_label", "r_label"]:
         if col in df.columns:
@@ -894,7 +894,7 @@ def print_label_statistics(df):
 
 def print_terrain_statistics(df):
     print("=" * 80)
-    print("[新增地形标签统计]")
+    print("[New terrain label statistics]")
 
     for col in ["terrain_single_label", "terrain_same_label"]:
         if col in df.columns:
@@ -960,12 +960,12 @@ def check_left_right_alternation(events):
 def process_one_file(input_file):
     print("\n")
     print("#" * 100)
-    print(f"[开始处理] {input_file}")
+    print(f"[Processing] {input_file}")
     print("#" * 100)
 
     direction = detect_z234_direction_from_filename(input_file)
 
-    print(f"[方向检测] 当前文件方向: {direction}")
+    print(f"[Direction detection] 当前文件Direction: {direction}")
 
     df, sheet_name = read_excel_auto_sheet(input_file)
 
@@ -992,9 +992,9 @@ def process_one_file(input_file):
 
     single_sequence, same_sequence = get_z234_sequences(direction)
 
-    print(f"[事件检测] {direction} 共检测到地形切换事件: {len(events)} 个")
-    print(f"[标签数量] 单侧标签数量: {len(single_sequence)}")
-    print(f"[标签数量] 同侧标签数量: {len(same_sequence)}")
+    print(f"[Event detection] {direction} 共检测到地形切换事件: {len(events)} 个")
+    print(f"[标签数量] 单侧Label count: {len(single_sequence)}")
+    print(f"[标签数量] 同侧Label count: {len(same_sequence)}")
 
     # ========================================================
     # Strict check: label count must match event count
@@ -1016,7 +1016,7 @@ def process_one_file(input_file):
     if not single_ok or not same_ok:
         print("=" * 80)
         print(f"[跳过] {direction} 标签数量和事件数量对不上，不生成新文件。")
-        print(f"输入文件: {input_file}")
+        print(f"输入File: {input_file}")
         print("=" * 80)
         return None
 
@@ -1026,13 +1026,13 @@ def process_one_file(input_file):
         print_event_mapping(
             events,
             single_sequence,
-            title=f"[{direction} 单侧地形标签映射]",
+            title=f"[{direction} 单侧地形label mapping]",
         )
 
         print_event_mapping(
             events,
             same_sequence,
-            title=f"[{direction} 同侧地形标签映射]",
+            title=f"[{direction} 同侧地形label mapping]",
         )
 
     # Assign single-side terrain labels
@@ -1079,10 +1079,10 @@ def process_one_file(input_file):
 
     print("=" * 80)
     print("[完成]")
-    print(f"方向: {direction}")
-    print(f"输入文件: {input_file}")
-    print(f"输出文件: {actual_output_file}")
-    print("新增列:")
+    print(f"Direction: {direction}")
+    print(f"输入File: {input_file}")
+    print(f"输出File: {actual_output_file}")
+    print("Added columns:")
     print("  terrain_single_label  单侧地形标签")
     print("  terrain_same_label    同侧地形标签")
     print("=" * 80)
@@ -1097,7 +1097,7 @@ def process_one_file(input_file):
 def main():
     print("=" * 100)
     print("[Z2/Z3/Z4 方向地形标签批处理开始]")
-    print(f"待处理文件数量: {len(INPUT_FILES)}")
+    print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
     output_files = []
@@ -1119,16 +1119,16 @@ def main():
         except Exception as e:
             print("=" * 80)
             print("[错误] 当前文件处理失败，已跳过，不影响后续文件。")
-            print(f"文件: {input_file}")
-            print(f"错误类型: {type(e).__name__}")
-            print(f"错误信息: {e}")
+            print(f"File: {input_file}")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Error message: {e}")
             print("=" * 80)
             continue
 
     print("\n")
     print("#" * 100)
-    print("[全部处理完成]")
-    print(f"成功生成文件数量: {len(output_files)}")
+    print("[All processing complete]")
+    print(f"Successfully generated files: {len(output_files)}")
 
     for f in output_files:
         print(f"  {f}")
