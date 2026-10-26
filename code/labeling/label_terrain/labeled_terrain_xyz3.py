@@ -91,14 +91,14 @@ def read_excel_auto_sheet(input_file):
 
     except zipfile.BadZipFile:
         raise RuntimeError(
-            "当前文件不是有效的 .xlsx 文件，可能文件损坏，或者只是被改名成 .xlsx。\n"
+            "The file is not a valid .xlsx workbook; it may be corrupt or incorrectly renamed.\n"
             f"文件: {input_file}\n"
-            "建议用 Excel/WPS 打开后重新另存为真正的 Excel 工作簿 (*.xlsx)。"
+            "Open the file in Excel/WPS and save it as a valid Excel workbook (*.xlsx)."
         )
 
     except Exception as e:
         raise RuntimeError(
-            "读取 Excel 文件失败。\n"
+            "Failed to read the Excel workbook.\n"
             f"文件: {input_file}\n"
             f"错误类型: {type(e).__name__}\n"
             f"错误信息: {e}"
@@ -164,7 +164,7 @@ def detect_xyz3_direction_from_filename(input_file):
 
 def extract_subject_id(input_file):
     """
-    从路径或文件名中提取 sub_xxx。
+    Extract sub_xxx from the path or filename.
     """
     text = input_file.replace("\\", "/")
 
@@ -184,8 +184,8 @@ def build_output_file(input_file):
     输出目录：
         sub_xxx_labeled_terrain
 
-    输出文件：
-        原文件名 + _terrain.xlsx
+    Output file:
+        Original filename + _terrain.xlsx
     """
     subject_id = extract_subject_id(input_file)
 
@@ -260,7 +260,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
                 continue
 
         raise PermissionError(
-            "尝试多个备用文件名后仍无法保存，请关闭 Excel/WPS 后重试。"
+            "Could not save using alternative names; close Excel/WPS and retry."
         )
 
 
@@ -270,11 +270,11 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
     """
-    检测指定 label_col 中 label_value 的起始点。
+    Detect the first sample of a label_value run in label_col.
 
     rising edge：
-        当前行 == label_value
-        且上一行 != label_value
+        Current row == label_value
+        and previous row != label_value
     """
     if label_col not in df.columns:
         raise KeyError(f"缺少列: {label_col}")
@@ -312,22 +312,22 @@ def collect_xyz3_terrain_events(df):
     """
     xyz3 事件规则：
 
-    初始为 0。
+    Initialize to 0.
 
     Event 1:
-        第一个 l_label == 3
+        First l_label == 3
 
     Event 2:
-        第二个 l_label == 3
+        Second l_label == 3
 
     Event 3:
-        第二个 l_label == 3 后第一个 r_label == 3
+        Second l_label == 3 后第一个 r_label == 3
 
     Event 4 and later:
-        第三个事件之后，
+        After the third event,
         l_label == 3 或 r_label == 3
 
-    最后：
+    Finally:
         最后一个 r_label == 3 起始事件之后强制归 0。
     """
     if "l_label" not in df.columns:
@@ -379,7 +379,7 @@ def collect_xyz3_terrain_events(df):
 
     if len(r3_after_second) == 0:
         raise RuntimeError(
-            "第二个 l_label == 3 后没有找到 r_label == 3。"
+            "Second l_label == 3 后没有找到 r_label == 3。"
         )
 
     third_event = dict(r3_after_second[0])
@@ -481,11 +481,11 @@ def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_lab
     """
     Assign terrain labels from the event sequence.
 
-    逻辑：
+    Logic:
         Before the first event:
             initial_label
 
-        第 k 个事件 到 第 k+1 个事件之前：
+        From event k to just before event k+1:
             terrain_sequence[k]
 
         After the final event:
@@ -528,8 +528,8 @@ def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_lab
 
 def force_zero_from_last_right_label3(df, output_cols):
     """
-    从最后一个 r_label == 3 起始事件开始，
-    将所有输出列强制置为 0。
+    Starting at the final r_label == 3 event,
+    Force all output columns to 0.
     """
     r3_events = detect_label_value_rising_edges(
         df=df,
@@ -661,7 +661,7 @@ def process_one_file(input_file):
 
     if missing:
         raise KeyError(
-            "当前表格缺少必要列：\n"
+            "Required columns are missing:\n"
             + "\n".join(missing)
         )
 
