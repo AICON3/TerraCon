@@ -464,7 +464,7 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
         )
 
     # Then concatenate at the directory level
-    merge_name = f"{sub_name}_{sensor_name}_merged.xlsx"
+    merge_name = f"{sub_name}_{sensor_name}_\u62fc\u63a5.xlsx"
     merge_path = os.path.join(output_dir, merge_name)
     merge_writer = ExcelStreamWriter(merge_path)
     concat_index = 0
