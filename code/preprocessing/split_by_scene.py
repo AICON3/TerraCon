@@ -143,7 +143,7 @@ def normalize_subject(value):
         return f"sub_{int(m.group(1)):03d}"
     if re.fullmatch(r"\d+", text):
         return f"sub_{int(text):03d}"
-    raise ValueError(f"无法识别受试者编号: {value}")
+    raise ValueError(f"Cannot identify subject number: {value}")
 
 
 def find_scene_time_file(subject):
@@ -167,7 +167,7 @@ def find_scene_time_file(subject):
 
     if not candidates:
         raise FileNotFoundError(
-            f"未找到场景时间记录表: {subject_dir}/场景时间记录表*.xlsm"
+            f"Scene timing sheet not found: {subject_dir}/场景时间记录表*.xlsm"
         )
 
     return candidates[0]
@@ -227,7 +227,7 @@ def read_scene_table(filepath):
             return scenes
 
     raise ValueError(
-        f"时间表中没有找到有效的“场景 / 开始时间 / 结束时间”数据: {filepath}"
+        f"No valid scene/start/end time records found: {filepath}"
     )
 
 
@@ -260,7 +260,7 @@ def read_stitched_excel(filepath):
             frames.append(df)
 
     if not frames:
-        raise ValueError(f"Excel 中没有找到带时间戳的 IMU 数据表: {filepath}")
+        raise ValueError(f"No timestamped IMU data worksheet found: {filepath}")
 
     return pd.concat(frames, ignore_index=True)
 
@@ -287,7 +287,7 @@ def build_standard_frame(df, input_excel):
         source = first_existing_column(df, COLUMN_CANDIDATES[target])
         if source is None:
             raise KeyError(
-                f"{input_excel.name} 缺少 {target} 对应列。当前列: {list(df.columns)}"
+                f"{input_excel.name} is missing {target} column. Available columns: {list(df.columns)}"
             )
         source_columns[target] = source
 
@@ -340,7 +340,7 @@ def select_scenes(all_scenes, wanted_scenes):
     missing = [s for s in wanted_scenes if s not in by_name]
     if missing:
         raise ValueError(
-            "时间记录表中找不到这些场景: " + ", ".join(missing)
+            "These scenes are absent from the timing sheet: " + ", ".join(missing)
         )
 
     return [by_name[s] for s in wanted_scenes]
@@ -350,15 +350,15 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
     input_excel = STITCHED_ROOT / subject / f"{subject}_{sensor}.xlsx"
 
     if not input_excel.exists():
-        raise FileNotFoundError(f"拼接 Excel 不存在: {input_excel}")
+        raise FileNotFoundError(f"Merged Excel workbook does not exist: {input_excel}")
 
-    print(f"\n[{sensor} -> {body_name}] 读取 {input_excel}")
+    print(f"\n[{sensor} -> {body_name}] Reading {input_excel}")
     raw = read_stitched_excel(input_excel)
     std = build_standard_frame(raw, input_excel)
 
     invalid_ts = int(std["timestamp"].isna().sum())
     if invalid_ts:
-        print(f"  注意: {invalid_ts} 行时间戳无法解析，无法落入场景窗口")
+        print(f"  Note: {invalid_ts} timestamps could not be parsed and cannot be assigned to any scene")
 
     before_pad = pd.Timedelta(seconds=before_padding)
     after_pad = pd.Timedelta(seconds=after_padding)
@@ -432,10 +432,10 @@ def cut_one_sensor(subject, sensor, body_name, scenes, before_padding, after_pad
                 ws.column_dimensions[get_column_letter(col_idx)].width = widths.get(name, 16)
 
         print(
-            f"  [覆盖写入] {scene:<14} "
+            f"  [Overwriting] {scene:<14} "
             f"{start.strftime('%H:%M:%S.%f')[:-3]} ~ "
             f"{end.strftime('%H:%M:%S.%f')[:-3]} | "
-            f"{len(part)} 行 | {out_file}"
+            f"{len(part)} rows | {out_file}"
         )
 
 
@@ -510,11 +510,11 @@ def main():
     after_padding = base_padding if args.after is None else args.after
 
     if args.padding is not None and args.padding < 0:
-        parser.error("--padding 不能小于 0")
+        parser.error("--padding must be non-negative")
     if before_padding < 0:
-        parser.error("--before 不能小于 0")
+        parser.error("--before must be non-negative")
     if after_padding < 0:
-        parser.error("--after 不能小于 0")
+        parser.error("--after must be non-negative")
 
     subject = normalize_subject(args.subject)
 
@@ -542,15 +542,15 @@ def main():
         scenes = select_scenes(all_scenes, wanted_scenes)
 
     print("=" * 100)
-    print("指定场景直接重建 IMU XLSX")
+    print("Rebuild IMU XLSX for selected scenes")
     print(f"受试者:       {subject}")
     print(f"场景:         {', '.join(wanted_scenes)}")
     print(f"传感器:       {', '.join(sensors)}")
     print(f"拼接 Excel:   {STITCHED_ROOT / subject}")
     print(f"时间记录表:   {time_file}")
     print(f"输出目录:     {OUTPUT_ROOT / subject / 'imu'}")
-    print(f"时间窗口:     开始前 {before_padding:.3f} 秒，结束后 {after_padding:.3f} 秒")
-    print("已有目标 XLSX: 直接覆盖")
+    print(f"Time window:     before start {before_padding:.3f} 秒，after end {after_padding:.3f} 秒")
+    print("Existing target XLSX files will be overwritten")
     print("=" * 100)
 
     for sensor in sensors:
@@ -563,7 +563,7 @@ def main():
             after_padding=after_padding,
         )
 
-    print("\n完成。")
+    print("\nCompleted.")
 
 
 if __name__ == "__main__":
