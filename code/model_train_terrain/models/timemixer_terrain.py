@@ -18,7 +18,7 @@ class PastDecomposableMixing(nn.Module):
 
     def __init__(self, d_model, dropout=0.1):
         super().__init__()
-        # 时序维度混合 (Token Mixing)
+        # Temporal token mixing
         self.time_mixing = nn.Sequential(
             nn.Linear(d_model, d_model * 2),
             nn.GELU(),
@@ -51,12 +51,12 @@ class TimeMixerTerrainRegression(nn.Module):
         self.num_scales = num_scales
         self.down_sampling_window = down_sampling_window
 
-        # 1. 各尺度的输入线性投影 (42 -> d_model)
+        # 1. Input linear projections at each scale (42 -> d_model)
         self.encoders = nn.ModuleList([
             nn.Linear(input_dim, d_model) for _ in range(num_scales)
         ])
 
-        # 2. 各尺度的 Past Decomposable Mixing 块
+        # 2. Past Decomposable Mixing blocks at each scale
         self.mixers = nn.ModuleList([
             nn.Sequential(
                 PastDecomposableMixing(d_model, dropout),
@@ -65,7 +65,7 @@ class TimeMixerTerrainRegression(nn.Module):
             for _ in range(num_scales)
         ])
 
-        # 3. 多尺度特征融合层 (拼接多个尺度的池化特征)
+        # 3. Multiscale feature fusion (concatenate pooled features across scales)
         total_dim = d_model * num_scales
         self.fusion = nn.Sequential(
             nn.Linear(total_dim, total_dim),
@@ -74,7 +74,7 @@ class TimeMixerTerrainRegression(nn.Module):
             nn.Dropout(dropout),
         )
 
-        # 4. 地形回归输出头 (严格对应 [pred_len, terrain_dim])
+        # 4. Terrain regression output head (matches [pred_len, terrain_dim])
         self.terrain_head = nn.Sequential(
             nn.Linear(total_dim, 128),
             nn.GELU(),
@@ -92,10 +92,10 @@ class TimeMixerTerrainRegression(nn.Module):
                     nn.init.zeros_(m.bias)
 
     def _encode_scale(self, x, scale_idx):
-        # 投影并进行时序特征混合
+        # Apply projection and temporal feature mixing
         h = self.encoders[scale_idx](x)
         h = self.mixers[scale_idx](h)
-        # 全局时序平均池化 [B, T_scale, d_model] -> [B, d_model]
+        # Global temporal average pooling [B, T_scale, d_model] -> [B, d_model]
         return h.mean(dim=1)
 
     def forward(self, x):
@@ -110,7 +110,7 @@ class TimeMixerTerrainRegression(nn.Module):
         if x.ndim != 3:
             raise ValueError("Input must be [B, T, F]")
 
-        # 维度容错校验
+        # Dimension consistency check
         if x.size(-1) != self.input_dim:
             if x.size(1) == self.input_dim:
                 x = x.transpose(1, 2)
@@ -123,11 +123,11 @@ class TimeMixerTerrainRegression(nn.Module):
         pooled = []
         current = x
 
-        # 多尺度降采样与编码
+        # Multiscale downsampling and encoding
         for level in range(self.num_scales):
             pooled.append(self._encode_scale(current, level))
 
-            # 下采样生成粗粒度时序: [B, T, F] -> [B, F, T] -> avg_pool -> [B, T_new, F]
+            # Downsample to coarser temporal features: [B, T, F] -> [B, F, T] -> avg_pool -> [B, T_new, F]
             if level < self.num_scales - 1:
                 current = F.avg_pool1d(
                     current.transpose(1, 2),
@@ -135,11 +135,11 @@ class TimeMixerTerrainRegression(nn.Module):
                     stride=self.down_sampling_window,
                 ).transpose(1, 2)
 
-        # 跨尺度特征融合 [B, d_model * num_scales]
+        # Cross-scale feature fusion [B, d_model * num_scales]
         multi_scale_feature = torch.cat(pooled, dim=-1)
         feature = self.fusion(multi_scale_feature)
 
-        # 地形回归并重塑为 [B, pred_len, terrain_dim]
+        # Terrain regression reshaped to [B, pred_len, terrain_dim]
         terrain = self.terrain_head(feature)
         terrain = terrain.view(B, self.pred_len, self.terrain_dim)
 
@@ -150,7 +150,7 @@ class TimeMixerTerrainRegression(nn.Module):
 # Test
 # =====================================================
 if __name__ == "__main__":
-    # 与 build_model("timemixer", cfg) 传参完全一致
+    # Arguments match build_model("timemixer", cfg)
     model = TimeMixerTerrainRegression(
         input_dim=42,
         pred_len=30,
