@@ -4,9 +4,9 @@ from transformers import GPT2Config, GPT2Model
 
 
 class RevIN(nn.Module):
-    """可逆实例归一化 (Reversible Instance Normalization)
+    """Reversible Instance Normalization
 
-    消除跨个体 (48人)、不同步速及 IMU 传感器温漂/偏置带来的分布偏移
+    Mitigates distribution shifts across 48 subjects, walking speeds, and IMU drift or bias
     """
 
     def __init__(self, num_features: int, eps=1e-5, affine=True):
@@ -93,10 +93,10 @@ class GPT4TSTerrainRegression(nn.Module):
         )
 
     def forward(self, x):
-        """输入:
+        """Input:
 
             x: [B, 200, 42]
-        输出:
+        Output:
             {"terrain": [B, 30, 6]}
         """
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
@@ -145,12 +145,12 @@ if __name__ == "__main__":
 
     # Verify that the optimizer can collect parameters
     trainable_params = [p for p in model.parameters() if p.requires_grad]
-    print(f"可训练参数张量数量: {len(trainable_params)}")
+    print(f"Number of trainable parameter tensors: {len(trainable_params)}")
 
     # Verify forward pass
     dummy_x = torch.randn(2, 200, 42)
     output = model(dummy_x)
 
-    print("输出张量结构:", output["terrain"].shape)
-    assert output["terrain"].shape == (2, 30, 6), "输出维度与实验预期不符！"
-    print("模型验证通过，可直接投入训练！")
+    print("输出张量Architecture:", output["terrain"].shape)
+    assert output["terrain"].shape == (2, 30, 6), "Output shape does not match expected experimental dimensions!"
+    print("Model verification passed; ready for training.")
