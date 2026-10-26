@@ -4,16 +4,16 @@ import torch.nn.functional as F
 
 
 def series_decomp(x, kernel_size=25):
-    """序列分解: 用移动平均把序列拆成 seasonal + trend
+    """Sequence decomposition: moving average separates seasonal and trend components
 
     x: [B, T, d_model]
 
-    返回:
-        seasonal: 高频残差部分, 形状同 x
-        trend:    移动平均得到的低频趋势部分, 形状同 x
+    Returns:
+        seasonal: high-frequency residual with the same shape as x
+        trend: low-frequency trend from the moving average, same shape as x
 
-    kernel_size 会被裁剪到不超过序列长度并保持为奇数，保证
-    avg_pool1d 的输出长度与输入一致。
+    kernel_size is clamped to the sequence length and kept odd to ensure
+    avg_pool1d output length equals input length.
     """
     T = x.size(1)
 
@@ -42,11 +42,11 @@ def series_decomp(x, kernel_size=25):
 
 
 class TimeMixing(nn.Module):
-    """沿时间轴的 token mixing + 特征维通道混合
+    """Temporal token mixing with feature-channel mixing
 
-    真实 TimeMixer 的 mixing 作用在时间维度上(不同时刻相互交互)。
-    这里用共享权重的深度可分离卷积沿时间轴耦合各时刻(参数量与
-    序列长度无关)，再接一层特征维 MLP，最后带残差。
+    True TimeMixer mixing operates along time (interactions between time steps).
+    Here, a shared-weight depthwise separable convolution couples time steps (with
+    parameters independent of sequence length), followed by a feature MLP and residual.
     """
 
     def __init__(self, d_model, kernel_size=3, dropout=0.1):
@@ -78,15 +78,15 @@ class TimeMixing(nn.Module):
 
 
 class PastDecomposableMixing(nn.Module):
-    """Past Decomposable Mixing (TimeMixer 核心单元)
+    """Past Decomposable Mixing (core TimeMixer component)
 
-    对多个尺度的序列:
-        1. 每个尺度做序列分解, 得到 seasonal / trend
-        2. Bottom-up: 细尺度 trend 下采样后汇入粗尺度 trend
-        3. Top-down:  粗尺度 seasonal 上采样后汇入细尺度 seasonal
-        4. 各尺度的 seasonal / trend 分别做时间轴 mixing
+    For sequences at multiple scales:
+        1. Decompose each scale into seasonal and trend components
+        2. Bottom-up: downsample fine-scale trends into coarse-scale trends
+        3. Top-down: upsample coarse-scale seasonal components into fine-scale components
+        4. Apply temporal mixing separately to seasonal/trend at each scale
 
-    输入 / 输出均为 list, 每个元素形如 [B, T_scale, d_model]。
+    Input/output are lists with elements of shape [B, T_scale, d_model].
     """
 
     def __init__(
@@ -155,17 +155,17 @@ class PastDecomposableMixing(nn.Module):
 
 
 class TimeMixerMultiTask(nn.Module):
-    """TimeMixer 多任务模型 (角度回归 + 步态分类)
+    """TimeMixer multitask model (angle regression + gait classification)
 
-    结构:
-        多尺度下采样 -> 各尺度投影
+    Architecture:
+        Multiscale downsampling -> projection at each scale
         -> PastDecomposableMixing x num_pdm_layers
-           (序列分解 + Bottom-up/Top-down 跨尺度混合 + 时间轴 mixing)
-        -> 跨尺度特征融合 -> {angle_head, gait_head}
+           (decomposition + bottom-up/top-down cross-scale mixing + temporal mixing)
+        -> cross-scale fusion -> {angle_head, gait_head}
 
-    输入:
-        x: [B, input_len, input_dim]   (默认 [B, 200, 42])
-    输出:
+    Input:
+        x: [B, input_len, input_dim]   (default [B, 200, 42])
+    Output:
         {"angle": [B, pred_len, angle_dim],
          "gait":  [B, pred_len, gait_dim]}
     """
@@ -244,9 +244,9 @@ class TimeMixerMultiTask(nn.Module):
                     nn.init.zeros_(m.bias)
 
     def forward(self, x, **kwargs):
-        """输入:
+        """Input:
             x: [B, input_len, input_dim]
-        输出:
+        Output:
             {"angle": [B, pred_len, angle_dim],
              "gait":  [B, pred_len, gait_dim]}
         """
@@ -264,7 +264,7 @@ class TimeMixerMultiTask(nn.Module):
                 x = x.transpose(1, 2).contiguous()
             else:
                 raise ValueError(
-                    f"输入特征维度 {x.shape} 与设定 input_dim {self.input_dim} 不一致"
+                    f"Input feature shape {x.shape} differs from configured input_dim {self.input_dim}"
                 )
 
         B = x.size(0)
@@ -315,4 +315,4 @@ if __name__ == "__main__":
     print("gait:", out["gait"].shape)
     assert out["angle"].shape == (8, 30, 8)
     assert out["gait"].shape == (8, 30, 2)
-    print("TimeMixer 验证通过")
+    print("TimeMixer validation passed")
