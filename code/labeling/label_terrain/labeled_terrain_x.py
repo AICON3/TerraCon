@@ -204,7 +204,7 @@ def read_excel_auto_sheet(input_file):
     Otherwise read the first worksheet.
 
     安静版：
-        不打印工作表检测过程。
+        不打印worksheet inspection过程。
     """
     try:
         xls = pd.ExcelFile(input_file)
@@ -447,7 +447,7 @@ def collect_fwd_terrain_events(df):
         First r_label == 3 after the second l_label == 3
 
     Event 4 and later:
-        After the third event,l_label == 3 或 r_label == 3
+        After the third event: l_label == 3 or r_label == 3
     """
     if "l_label" not in df.columns:
         raise KeyError("Missing column: l_label")
@@ -546,7 +546,7 @@ def collect_bwd_terrain_events(df):
         第二个 r_label == 3 之后，First l_label == 3
 
     Event 4 and later:
-        After the third event,l_label == 3 或 r_label == 3
+        After the third event: l_label == 3 or r_label == 3
     """
     if "l_label" not in df.columns:
         raise KeyError("Missing column: l_label")
@@ -705,20 +705,20 @@ def print_count_summary(
     print(f"[数量结果] x_{direction}")
 
     print(
-        f"原始标签数量/你给的Label count: "
+        f"Original / provided label count: "
         f"单侧={single_count}, "
         f"双侧={double_count}"
     )
 
     print(
-        f"事件标签数量/实际检测到的贴标Event count: "
+        f"Detected labeling-event count: "
         f"{event_count}"
     )
 
     print(
-        f"原始 label==3 起始Event count: "
-        f"l_label==3事件={len(l3_events)}, "
-        f"r_label==3事件={len(r3_events)}"
+        f"Original label == 3 start-event count: "
+        f"l_label==3 events={len(l3_events)}, "
+        f"r_label==3 events={len(r3_events)}"
     )
 
     if single_ok and double_ok:
@@ -729,15 +729,15 @@ def print_count_summary(
         if not single_ok:
             print(
                 f"  单侧不一致: "
-                f"原始标签数量={single_count}, "
-                f"事件标签数量={event_count}"
+                f"Original label count={single_count}, "
+                f"Labeled event count={event_count}"
             )
 
         if not double_ok:
             print(
                 f"  双侧不一致: "
-                f"原始标签数量={double_count}, "
-                f"事件标签数量={event_count}"
+                f"Original label count={double_count}, "
+                f"Labeled event count={event_count}"
             )
 
     print("=" * 100)
@@ -963,7 +963,7 @@ def process_one_file(input_file):
     if not single_ok or not double_ok:
         raise RuntimeError(
             f"x_{direction} 标签数量和事件数量不一致，不生成新文件。\n"
-            f"事件Label count: {len(events)}\n"
+            f"Event count: {len(events)}\n"
             f"单侧原始Label count: {len(single_sequence)}\n"
             f"双侧原始Label count: {len(double_sequence)}"
         )
@@ -972,13 +972,13 @@ def process_one_file(input_file):
         print_event_mapping(
             events,
             single_sequence,
-            title=f"[x_{direction} 单侧地形标签映射]",
+            title=f"[x_{direction} 单侧地形label mapping]",
         )
 
         print_event_mapping(
             events,
             double_sequence,
-            title=f"[x_{direction} 双侧地形标签映射]",
+            title=f"[x_{direction} 双侧地形label mapping]",
         )
 
     # Assign single-side terrain labels
@@ -1038,8 +1038,8 @@ def process_one_file(input_file):
 def main():
     print("=" * 100)
     print("[x_fwd / x_bwd 地形标签批处理开始]")
-    print(f"被试: {SUB_ID}")
-    print(f"输入文件夹: {SUB_DIR}")
+    print(f"Subject: {SUB_ID}")
+    print(f"Input directory: {SUB_DIR}")
     print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
@@ -1071,7 +1071,7 @@ def main():
                 f"Rows: {result['row_count']} | "
                 f"原始Label count: 单侧={result['single_label_count']}, "
                 f"双侧={result['double_label_count']} | "
-                f"事件标签数量={result['event_count']} | "
+                f"Labeled event count={result['event_count']} | "
                 f"Output: {result['output_file']}"
             )
 
@@ -1106,9 +1106,9 @@ def main():
                 f"{r['direction']} | "
                 f"原始Label count: 单侧={r['single_label_count']}, "
                 f"双侧={r['double_label_count']} | "
-                f"事件标签数量={r['event_count']} | "
-                f"l_label==3事件={r['l3_event_count']} | "
-                f"r_label==3事件={r['r3_event_count']} | "
+                f"Labeled event count={r['event_count']} | "
+                f"l_label==3 events={r['l3_event_count']} | "
+                f"r_label==3 events={r['r3_event_count']} | "
                 f"输出={r['output_file']}"
             )
 
