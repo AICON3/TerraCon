@@ -92,21 +92,21 @@ def read_excel_auto_sheet(input_file):
     except zipfile.BadZipFile:
         raise RuntimeError(
             "The file is not a valid .xlsx workbook; it may be corrupt or incorrectly renamed.\n"
-            f"文件: {input_file}\n"
+            f"File: {input_file}\n"
             "Open the file in Excel/WPS and save it as a valid Excel workbook (*.xlsx)."
         )
 
     except Exception as e:
         raise RuntimeError(
             "Failed to read the Excel workbook.\n"
-            f"文件: {input_file}\n"
-            f"错误类型: {type(e).__name__}\n"
-            f"错误信息: {e}"
+            f"File: {input_file}\n"
+            f"Error type: {type(e).__name__}\n"
+            f"Error message: {e}"
         )
 
     print("=" * 80)
-    print("[Excel 工作表检测]")
-    print(f"文件: {input_file}")
+    print("[Excel worksheet inspection]")
+    print(f"File: {input_file}")
     print(f"工作表: {xls.sheet_names}")
 
     preferred_sheets = ["data", "Data", "DATA"]
@@ -126,10 +126,10 @@ def read_excel_auto_sheet(input_file):
 
     df = pd.read_excel(input_file, sheet_name=sheet_name)
 
-    print(f"[读取成功] 数据维度: {df.shape[0]} 行 × {df.shape[1]} 列")
+    print(f"[Read OK] 数据维度: {df.shape[0]} 行 × {df.shape[1]} 列")
 
     if "time_s" in df.columns:
-        print(f"[时间范围] {df['time_s'].iloc[0]} s -> {df['time_s'].iloc[-1]} s")
+        print(f"[Time range] {df['time_s'].iloc[0]} s -> {df['time_s'].iloc[-1]} s")
 
     print("=" * 80)
 
@@ -154,7 +154,7 @@ def detect_xyz3_direction_from_filename(input_file):
 
     raise ValueError(
         "无法从文件名判断方向，请确保文件名包含 xyz3_fwd 或 xyz3_bwd。\n"
-        f"当前文件: {input_file}"
+        f"当前File: {input_file}"
     )
 
 
@@ -230,7 +230,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
             sheet_name=sheet_name if sheet_name else "data",
         )
 
-        print(f"[保存成功] {output_file}")
+        print(f"[Saved] {output_file}")
         return output_file
 
     except PermissionError:
@@ -253,7 +253,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
                     sheet_name=sheet_name if sheet_name else "data",
                 )
 
-                print(f"[保存成功] {new_file}")
+                print(f"[Saved] {new_file}")
                 return new_file
 
             except PermissionError:
@@ -321,7 +321,7 @@ def collect_xyz3_terrain_events(df):
         Second l_label == 3
 
     Event 3:
-        Second l_label == 3 后第一个 r_label == 3
+        First r_label == 3 following the second l_label == 3
 
     Event 4 and later:
         After the third event,
@@ -448,7 +448,7 @@ def check_event_label_count_match(events, sequences, direction):
 
     print("=" * 80)
     print(f"[数量检查] {direction}")
-    print(f"事件数量: {event_count}")
+    print(f"Event count: {event_count}")
 
     all_ok = True
 
@@ -547,12 +547,12 @@ def force_zero_from_last_right_label3(df, output_cols):
     if "time_s" in df.columns:
         t = df.loc[last_right_idx, "time_s"]
         print(
-            f"[最后归0] 从最后一个 r_label == 3 开始置 0，"
+            f"[Final reset to zero] 从最后一个 r_label == 3 开始置 0，"
             f"idx={last_right_idx}, time={t:.4f}s"
         )
     else:
         print(
-            f"[最后归0] 从最后一个 r_label == 3 开始置 0，"
+            f"[Final reset to zero] 从最后一个 r_label == 3 开始置 0，"
             f"idx={last_right_idx}"
         )
 
@@ -598,14 +598,14 @@ def print_event_mapping(events, sequence, title):
         )
 
     print("-" * 140)
-    print(f"事件数量: {len(events)}")
-    print(f"标签数量: {len(sequence)}")
+    print(f"Event count: {len(events)}")
+    print(f"Label count: {len(sequence)}")
     print("=" * 140)
 
 
 def print_label_statistics(df):
     print("=" * 80)
-    print("[原始步态标签统计]")
+    print("[Original gait label statistics]")
 
     for col in ["l_label", "r_label"]:
         if col in df.columns:
@@ -617,7 +617,7 @@ def print_label_statistics(df):
 
 def print_terrain_statistics(df):
     print("=" * 80)
-    print("[新增地形标签统计]")
+    print("[New terrain label statistics]")
 
     cols = [
         "terrain_x_single_label",
@@ -643,12 +643,12 @@ def print_terrain_statistics(df):
 def process_one_file(input_file):
     print("\n")
     print("#" * 100)
-    print(f"[开始处理] {input_file}")
+    print(f"[Processing] {input_file}")
     print("#" * 100)
 
     direction = detect_xyz3_direction_from_filename(input_file)
 
-    print(f"[方向检测] 当前文件方向: {direction}")
+    print(f"[Direction detection] 当前文件Direction: {direction}")
 
     df, sheet_name = read_excel_auto_sheet(input_file)
 
@@ -671,7 +671,7 @@ def process_one_file(input_file):
 
     sequences = get_xyz3_sequences(direction)
 
-    print(f"[事件检测] {direction} 共检测到地形切换事件: {len(events)} 个")
+    print(f"[Event detection] {direction} 共检测到地形切换事件: {len(events)} 个")
 
     ok = check_event_label_count_match(
         events=events,
@@ -682,7 +682,7 @@ def process_one_file(input_file):
     if not ok:
         print("=" * 80)
         print(f"[跳过] {direction} 标签数量和事件数量对不上，不生成新文件。")
-        print(f"输入文件: {input_file}")
+        print(f"输入File: {input_file}")
         print("=" * 80)
         return None
 
@@ -691,7 +691,7 @@ def process_one_file(input_file):
             print_event_mapping(
                 events=events,
                 sequence=seq,
-                title=f"[{direction} {col} 标签映射]",
+                title=f"[{direction} {col} label mapping]",
             )
 
     for col, seq in sequences.items():
@@ -721,10 +721,10 @@ def process_one_file(input_file):
 
     print("=" * 80)
     print("[完成]")
-    print(f"方向: {direction}")
-    print(f"输入文件: {input_file}")
-    print(f"输出文件: {actual_output_file}")
-    print("新增列:")
+    print(f"Direction: {direction}")
+    print(f"输入File: {input_file}")
+    print(f"输出File: {actual_output_file}")
+    print("Added columns:")
     print("  terrain_x_single_label")
     print("  terrain_y_single_label")
     print("  terrain_z_single_label")
@@ -743,7 +743,7 @@ def process_one_file(input_file):
 def main():
     print("=" * 100)
     print("[XYZ3 地形标签批处理开始]")
-    print(f"待处理文件数量: {len(INPUT_FILES)}")
+    print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
     output_files = []
@@ -765,16 +765,16 @@ def main():
         except Exception as e:
             print("=" * 80)
             print("[错误] 当前文件处理失败，已跳过，不影响后续文件。")
-            print(f"文件: {input_file}")
-            print(f"错误类型: {type(e).__name__}")
-            print(f"错误信息: {e}")
+            print(f"File: {input_file}")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Error message: {e}")
             print("=" * 80)
             continue
 
     print("\n")
     print("#" * 100)
-    print("[全部处理完成]")
-    print(f"成功生成文件数量: {len(output_files)}")
+    print("[All processing complete]")
+    print(f"Successfully generated files: {len(output_files)}")
 
     for f in output_files:
         print(f"  {f}")
