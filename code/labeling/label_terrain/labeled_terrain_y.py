@@ -218,10 +218,10 @@ Y_BWD_SAME_TERRAIN_SEQUENCE = [
 
 def read_excel_auto_sheet(input_file):
     """
-    自动读取 Excel 文件。
+    Automatically load the Excel workbook.
 
-    优先读取 data/Data/DATA 工作表。
-    如果没有，则读取第一个工作表。
+    Prefer the data/Data/DATA worksheet.
+    Otherwise read the first worksheet.
 
     安静版：
         不打印 Excel 工作表检测过程。
@@ -339,7 +339,7 @@ def build_output_file(input_file):
 
 def save_excel_safely(df, output_file, sheet_name="data"):
     """
-    安全保存 Excel。
+    Save the Excel workbook safely.
 
     如果目标文件被 Excel/WPS 打开导致无法覆盖，
     自动另存为 _v2, _v3, ...
@@ -442,16 +442,16 @@ def collect_y_terrain_events_like_x_fwd(df):
     """
     Y_fwd 和 Y_bwd 都使用 x_fwd 的贴标逻辑：
 
-    第 1 个事件：
+    Event 1:
         第一个 l_label == 3
 
-    第 2 个事件：
+    Event 2:
         第二个 l_label == 3
 
-    第 3 个事件：
+    Event 3:
         第二个 l_label == 3 之后，第一个 r_label == 3
 
-    第 4 个事件及以后：
+    Event 4 and later:
         第三个事件之后，l_label == 3 或 r_label == 3
 
     返回：
@@ -649,16 +649,16 @@ def apply_terrain_sequence(
     initial_label=0,
 ):
     """
-    根据事件序列贴地形标签。
+    Assign terrain labels from the event sequence.
 
     贴标逻辑：
-        第一个事件之前：
+        Before the first event:
             initial_label
 
         第 k 个事件 到 第 k+1 个事件之前：
             terrain_sequence[k]
 
-        最后一个事件之后：
+        After the final event:
             terrain_sequence[-1]
 
     严格模式：
