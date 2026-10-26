@@ -167,7 +167,7 @@ y:50, 75, 55, 85, 65, 45, 95, 55, 85, 65, 45, 95, 75, 85, 65, 45, 95, 75, 55, 65
 def parse_number_list(s):
     """
     从字符串中提取数字。
-    支持：
+    Supported:
         英文逗号
         中文逗号
         顿号
@@ -465,7 +465,7 @@ def collect_xy_terrain_events(df):
         After the third event: l_label == 3 or r_label == 3
 
     Finally:
-        最后一个 r_label == 3 开始强制归 0。
+        Force labels to zero from the final r_label == 3 event.
     """
     l3_events = detect_label_value_rising_edges(
         df=df,
@@ -482,10 +482,10 @@ def collect_xy_terrain_events(df):
     )
 
     if len(l3_events) < 2:
-        raise RuntimeError("l_label == 3 的起始事件少于 2 个，无法执行 XY 贴标规则。")
+        raise RuntimeError("l_label == 3 has fewer than two start events; cannot apply XY 贴标rules.")
 
     if len(r3_events) < 1:
-        raise RuntimeError("r_label == 3 的起始事件少于 1 个，无法执行 XY 贴标规则。")
+        raise RuntimeError("r_label == 3 has fewer than one start event; cannot apply XY 贴标rules.")
 
     events = []
 
@@ -557,7 +557,7 @@ def get_xy_sequences(direction):
     for terrain_type, axis in required:
         if terrain_type not in item or axis not in item[terrain_type]:
             raise ValueError(
-                f"{direction} 缺少标签: {terrain_type} {axis}。"
+                f"{direction} missing labels: {terrain_type} {axis}。"
             )
 
     return {
@@ -570,7 +570,7 @@ def get_xy_sequences(direction):
 
 def get_sequence_lengths(sequences):
     """
-    获取你给的标签数量。
+    获取你给的label count。
     """
     return {
         col: len(seq)
@@ -580,7 +580,7 @@ def get_sequence_lengths(sequences):
 
 def check_event_label_count_match(events, sequences):
     """
-    检查事件数量和你给的标签数量是否一致。
+    检查event count和你给的label count是否一致。
     """
     event_count = len(events)
 
@@ -594,8 +594,8 @@ def check_event_label_count_match(events, sequences):
 def print_count_summary(direction, sequences, events, l3_events, r3_events):
     """
     Print a concise count summary:
-        原始标签数量 = 你在 LABEL_TEXT 里给的标签序列数量
-        事件标签数量 = 根据 l_label/r_label 检测到的贴标事件数量
+        原始label count = 你在 LABEL_TEXT 里给的标签序列数量
+        事件label count = 根据 l_label/r_label 检测到的贴标event count
     """
     seq_lens = get_sequence_lengths(sequences)
 
@@ -640,7 +640,7 @@ def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_lab
     """
     if len(events) != len(terrain_sequence):
         raise ValueError(
-            f"{output_col}: Event count {len(events)} 和标签数量 {len(terrain_sequence)} do not match."
+            f"{output_col}: Event count {len(events)} 和label count {len(terrain_sequence)} do not match."
         )
 
     n = len(df)
@@ -781,7 +781,7 @@ def process_one_file(input_file):
         seq_lens = get_sequence_lengths(sequences)
 
         raise RuntimeError(
-            f"{direction} 事件数量和你给的标签数量do not match.\n"
+            f"{direction} event count和你给的label countdo not match.\n"
             f"Event count: {len(events)}\n"
             f"Original / provided label count: {seq_lens}"
         )
@@ -838,7 +838,7 @@ def process_one_file(input_file):
 
 def main():
     print("=" * 100)
-    print("[XY1~XY6 地形标签批处理开始]")
+    print("[XY1~XY6 terrain label batch processing started]")
     print(f"Subject: {SUBJECT_ID}")
     print(f"Input directory: {INPUT_DIR}")
     print(f"Files to process: {len(INPUT_FILES)}")
