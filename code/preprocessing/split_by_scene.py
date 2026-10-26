@@ -2,44 +2,44 @@
 # -*- coding: utf-8 -*-
 
 """
-已经拼接好的 7 个 IMU Excel -> 按指定场景直接切分 XLSX
+Seven merged IMU Excel workbooks -> split directly into scene-specific XLSX files
 
-特点
+Features
 ----
-1. 支持直接指定受试者、场景、传感器。
-2. 指定什么就只处理什么，不扫描/跳过其它目标。
-3. 目标 XLSX 已存在时直接覆盖，不再做“已存在跳过”判断。
-4. 默认场景开始前 0.5 s、结束后 0.5 s；运行时可分别用 --before 和 --after 指定。
-5. 不重新拼接、不滤波、不插值、不重新对齐。
-6. 保留拼接 Excel 原始行顺序，只按时间窗口截取。
+1. Select subjects, scenes, and sensors explicitly.
+2. Process only selected targets without scanning unrelated targets.
+3. Overwrite existing target XLSX files.
+4. Default to 0.5 s padding before/after each scene; override with --before and --after.
+5. Do not re-merge, filter, interpolate, or re-align.
+6. Preserve original row order and select by time window.
 
-示例
+Examples
 ----
-只重做 sub_025 的 stair_fwd pelvis:
+Rebuild stair_fwd pelvis for sub_025 only:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --scene stair_fwd \
       --sensor G
 
-重做 sub_025 的 stair_fwd 全部 7 个传感器:
+Rebuild stair_fwd for all seven sensors of sub_025:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --scene stair_fwd \
       --all-sensors
 
-重做 sub_025 的两个场景、只处理 pelvis:
+Rebuild two scenes for pelvis only in sub_025:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --scenes stair_fwd stair_bwd \
       --sensor G
 
-重做 sub_025 的全部场景、全部 7 个传感器:
+Rebuild all scenes and sensors for sub_025:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --all-scenes \
       --all-sensors
 
-例如：场景开始前保留 1.0 s、结束后保留 2.0 s:
+Example: retain 1.0 s before and 2.0 s after each scene:
     python split_stitched_imu_by_scene.py \
       --subject 25 \
       --all-scenes \
@@ -174,7 +174,7 @@ def find_scene_time_file(subject):
 
 
 def read_scene_table(filepath):
-    """读取场景 / 开始时间 / 结束时间。"""
+    """Read scene, start time, and end time."""
     wb = load_workbook(filepath, data_only=True, read_only=True)
 
     for ws in wb.worksheets:
@@ -240,8 +240,8 @@ def first_existing_column(df, candidates):
 
 def read_stitched_excel(filepath):
     """
-    读取拼接 Excel。
-    如果因为 Excel 行数限制拆成多个数据 sheet，会按 sheet 顺序合并。
+    Read merged Excel workbooks.
+    If row limits require multiple worksheets, concatenate them in worksheet order.
     """
     xls = pd.ExcelFile(filepath, engine="openpyxl")
     frames = []
@@ -266,7 +266,7 @@ def read_stitched_excel(filepath):
 
 
 def build_standard_frame(df, input_excel):
-    """把拼接 Excel 映射成目标 CSV 布局，不修改 IMU 数值。"""
+    """Map merged Excel to target CSV schema without changing IMU values."""
     out = pd.DataFrame(index=df.index)
 
     required = [
