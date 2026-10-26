@@ -5,7 +5,7 @@ import pandas as pd
 
 
 # ============================================================
-# 0. 配置区
+# 0. Configuration
 # ============================================================
 
 # 以后只需要修改这里
@@ -30,7 +30,7 @@ INPUT_FILES = [
 # False = 不打印事件过程，只打印数量结果和最终结果
 PRINT_EVENTS = False
 
-# 最后从最后一个 r_label == 3 开始强制归 0
+# Force labels to 0 from the final r_label == 3 event onward
 FORCE_ZERO_FROM_LAST_RIGHT_LABEL3 = True
 
 
