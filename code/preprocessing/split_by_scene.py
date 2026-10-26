@@ -72,7 +72,7 @@ SENSOR_MAP = {
     "R3": "R_foot",
 }
 
-SKIP_SHEETS = {"File Info", "Unparsed Bytes", "info", "Info", "INFO"}
+SKIP_SHEETS = {"File Info", "Unparsed Bytes", "\u6587\u4ef6\u4fe1\u606f", "\u672a\u89e3\u6790\u5b57\u8282", "info", "Info", "INFO"}
 
 OUTPUT_COLUMNS = [
     "sample_index",
@@ -103,6 +103,7 @@ COLUMN_CANDIDATES = {
         "timestamp_aligned",
         "aligned_timestamp",
         "timestamp_device",
+        "\u8bbe\u5907\u65f6\u95f4\u6233", "\u65f6\u95f4\u6233\u539f\u59cb\u5b57\u7b26\u4e32", "\u65f6\u95f4\u6233",
     ],
     "timestamp_device": [
         "timestamp_device",
@@ -110,23 +111,24 @@ COLUMN_CANDIDATES = {
         "Raw timestamp string",
         "Timestamp",
         "timestamp",
+        "\u65f6\u95f4\u6233", "\u65f6\u95f4\u6233\u539f\u59cb\u5b57\u7b26\u4e32",
     ],
-    "accel_x_g": ["accel_x_g", "X acceleration (g)", "X acceleration (g)", "X acceleration (g)"],
-    "accel_y_g": ["accel_y_g", "Y acceleration (g)", "Y acceleration (g)", "Y acceleration (g)"],
-    "accel_z_g": ["accel_z_g", "Z acceleration (g)", "Z acceleration (g)", "Z acceleration (g)"],
+    "accel_x_g": ["accel_x_g", "X acceleration (g)", "\u0058\u8f74\u52a0\u901f\u5ea6(g)", "\u0058\u8f74\u52a0\u901f\u5ea6\uff08g\uff09", "\u52a0\u901f\u5ea6X(g)"],
+    "accel_y_g": ["accel_y_g", "Y acceleration (g)", "\u0059\u8f74\u52a0\u901f\u5ea6(g)", "\u0059\u8f74\u52a0\u901f\u5ea6\uff08g\uff09", "\u52a0\u901f\u5ea6Y(g)"],
+    "accel_z_g": ["accel_z_g", "Z acceleration (g)", "\u005a\u8f74\u52a0\u901f\u5ea6(g)", "\u005a\u8f74\u52a0\u901f\u5ea6\uff08g\uff09", "\u52a0\u901f\u5ea6Z(g)"],
     "gyro_x_deg_s": [
-        "gyro_x_deg_s", "X angular velocity (deg/s)", "X angular velocity (deg/s)", "X angular velocity (deg/s)"
+        "gyro_x_deg_s", "X angular velocity (deg/s)", "\u0058\u8f74\u89d2\u901f\u5ea6(deg/s)", "\u0058\u8f74\u89d2\u901f\u5ea6\uff08deg/s\uff09", "\u89d2\u901f\u5ea6X(deg/s)"
     ],
     "gyro_y_deg_s": [
-        "gyro_y_deg_s", "Y angular velocity (deg/s)", "Y angular velocity (deg/s)", "Y angular velocity (deg/s)"
+        "gyro_y_deg_s", "Y angular velocity (deg/s)", "\u0059\u8f74\u89d2\u901f\u5ea6(deg/s)", "\u0059\u8f74\u89d2\u901f\u5ea6\uff08deg/s\uff09", "\u89d2\u901f\u5ea6Y(deg/s)"
     ],
     "gyro_z_deg_s": [
-        "gyro_z_deg_s", "Z angular velocity (deg/s)", "Z angular velocity (deg/s)", "Z angular velocity (deg/s)"
+        "gyro_z_deg_s", "Z angular velocity (deg/s)", "\u005a\u8f74\u89d2\u901f\u5ea6(deg/s)", "\u005a\u8f74\u89d2\u901f\u5ea6\uff08deg/s\uff09", "\u89d2\u901f\u5ea6Z(deg/s)"
     ],
-    "angle_x_deg": ["angle_x_deg", "X angle (deg)", "X angle (deg)", "X angle (deg)"],
-    "angle_y_deg": ["angle_y_deg", "Y angle (deg)", "Y angle (deg)", "Y angle (deg)"],
-    "angle_z_deg": ["angle_z_deg", "Z angle (deg)", "Z angle (deg)", "Z angle (deg)"],
-    "source_file": ["source_file", "Source file", "Original file"],
+    "angle_x_deg": ["angle_x_deg", "X angle (deg)", "\u0058\u8f74\u89d2\u5ea6(deg)", "\u0058\u8f74\u89d2\u5ea6\uff08deg\uff09", "\u89d2\u5ea6X(deg)"],
+    "angle_y_deg": ["angle_y_deg", "Y angle (deg)", "\u0059\u8f74\u89d2\u5ea6(deg)", "\u0059\u8f74\u89d2\u5ea6\uff08deg\uff09", "\u89d2\u5ea6Y(deg)"],
+    "angle_z_deg": ["angle_z_deg", "Z angle (deg)", "\u005a\u8f74\u89d2\u5ea6(deg)", "\u005a\u8f74\u89d2\u5ea6\uff08deg\uff09", "\u89d2\u5ea6Z(deg)"],
+    "source_file": ["source_file", "Source file", "Original file", "\u6e90\u6587\u4ef6", "\u539f\u59cb\u6587\u4ef6"],
     "time_offset_seconds": ["time_offset_seconds"],
     "time_alignment_method": ["time_alignment_method"],
     "time_alignment_confidence": ["time_alignment_confidence"],
@@ -152,18 +154,22 @@ def find_scene_time_file(subject):
 
     exact_candidates = [
         subject_dir / f"Scene timing table_sub{subject_num}.xlsm",
+        subject_dir / f"\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868_sub{subject_num}.xlsm",
         subject_dir / f"Scene timing table_{subject}.xlsm",
+        subject_dir / f"\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868_{subject}.xlsm",
         subject_dir / f"Scene timing table_sub{subject_num}.xlsx",
+        subject_dir / f"\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868_sub{subject_num}.xlsx",
         subject_dir / f"Scene timing table_{subject}.xlsx",
+        subject_dir / f"\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868_{subject}.xlsx",
     ]
 
     for p in exact_candidates:
         if p.exists():
             return p
 
-    candidates = sorted(subject_dir.glob("Scene timing table*.xlsm"))
+    candidates = sorted(subject_dir.glob("Scene timing table*.xlsm") or subject_dir.glob("\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868*.xlsm"))
     if not candidates:
-        candidates = sorted(subject_dir.glob("Scene timing table*.xlsx"))
+        candidates = sorted(subject_dir.glob("Scene timing table*.xlsx") or subject_dir.glob("\u573a\u666f\u65f6\u95f4\u8bb0\u5f55\u8868*.xlsx"))
 
     if not candidates:
         raise FileNotFoundError(
@@ -187,11 +193,11 @@ def read_scene_table(filepath):
 
         for i, row in enumerate(rows[:20]):
             values = [str(v).strip() if v is not None else "" for v in row]
-            if "Scene" in values and "Start time" in values and "End time" in values:
+            if ("Scene" in values and "Start time" in values and "End time" in values) or all(name in values for name in ("\u573a\u666f", "\u5f00\u59cb\u65f6\u95f4", "\u7ed3\u675f\u65f6\u95f4")):
                 header_row_idx = i
-                scene_col = values.index("Scene")
-                start_col = values.index("Start time")
-                end_col = values.index("End time")
+                scene_col = values.index("Scene") if "Scene" in values else values.index("\u573a\u666f")
+                start_col = values.index("Start time") if "Start time" in values else values.index("\u5f00\u59cb\u65f6\u95f4")
+                end_col = values.index("End time") if "End time" in values else values.index("\u7ed3\u675f\u65f6\u95f4")
                 break
 
         if header_row_idx is None:
