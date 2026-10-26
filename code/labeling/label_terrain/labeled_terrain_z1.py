@@ -220,7 +220,7 @@ def read_excel_auto_sheet(input_file):
     Otherwise read the first worksheet.
 
     安静版：
-        不打印 Excel 工作表检测过程。
+        不打印 Excel worksheet inspection过程。
     """
     try:
         xls = pd.ExcelFile(input_file)
@@ -228,9 +228,9 @@ def read_excel_auto_sheet(input_file):
     except Exception as e:
         raise RuntimeError(
             "Failed to read the Excel workbook.\n"
-            f"文件: {input_file}\n"
-            f"错误类型: {type(e).__name__}\n"
-            f"错误信息: {e}"
+            f"File: {input_file}\n"
+            f"Error type: {type(e).__name__}\n"
+            f"Error message: {e}"
         )
 
     preferred_sheets = ["data", "Data", "DATA"]
@@ -452,7 +452,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 def collect_z1_terrain_events_like_y(df):
     """
-    Z1_fwd 和 Z1_bwd 使用和 Y 一样的贴标Logic:
+    Z1_fwd 和 Z1_bwd 使用和 Y 一样的Labeling logic:
 
     Event 1:
         First l_label == 3
@@ -464,7 +464,7 @@ def collect_z1_terrain_events_like_y(df):
         First r_label == 3 after the second l_label == 3
 
     Event 4 and later:
-        After the third event,l_label == 3 或 r_label == 3
+        After the third event: l_label == 3 or r_label == 3
 
     返回：
         events
@@ -569,7 +569,7 @@ def get_z1_sequences(direction):
     if direction == "z1_bwd":
         return Z1_BWD_SINGLE_TERRAIN_SEQUENCE, Z1_BWD_SAME_TERRAIN_SEQUENCE
 
-    raise ValueError(f"未知方向: {direction}")
+    raise ValueError(f"未知Direction: {direction}")
 
 
 # ============================================================
@@ -611,20 +611,20 @@ def print_count_summary(
     print(f"[数量结果] {direction}")
 
     print(
-        f"原始标签数量/你给的标签数量: "
+        f"原始标签数量/你给的Label count: "
         f"单侧={single_count}, "
         f"同侧={same_count}"
     )
 
     print(
-        f"事件标签数量/实际检测到的贴标事件数量: "
+        f"事件标签数量/实际检测到的贴标Event count: "
         f"{event_count}"
     )
 
     print(
-        f"原始 label==3 起始事件数量: "
-        f"l_label==3事件={len(l3_events)}, "
-        f"r_label==3事件={len(r3_events)}"
+        f"原始 label==3 起始Event count: "
+        f"l_label==3 events={len(l3_events)}, "
+        f"r_label==3 events={len(r3_events)}"
     )
 
     if single_ok and same_ok:
@@ -635,15 +635,15 @@ def print_count_summary(
         if not single_ok:
             print(
                 f"  单侧不一致: "
-                f"原始标签数量={single_count}, "
-                f"事件标签数量={event_count}"
+                f"Original label count={single_count}, "
+                f"Labeled event count={event_count}"
             )
 
         if not same_ok:
             print(
                 f"  同侧不一致: "
-                f"原始标签数量={same_count}, "
-                f"事件标签数量={event_count}"
+                f"Original label count={same_count}, "
+                f"Labeled event count={event_count}"
             )
 
     print("=" * 100)
@@ -663,7 +663,7 @@ def apply_terrain_sequence(
     """
     Assign terrain labels from the event sequence.
 
-    贴标Logic:
+    Labeling logic:
         Before the first event:
             initial_label
 
@@ -789,8 +789,8 @@ def print_event_mapping(events, sequence, title):
         )
 
     print("-" * 130)
-    print(f"事件数量: {len(events)}")
-    print(f"标签数量: {len(sequence)}")
+    print(f"Event count: {len(events)}")
+    print(f"Label count: {len(sequence)}")
     print("=" * 130)
 
 
@@ -848,22 +848,22 @@ def process_one_file(input_file):
     if not single_ok or not same_ok:
         raise RuntimeError(
             f"{direction} 标签数量和事件数量不一致，不生成新文件。\n"
-            f"事件标签数量: {len(events)}\n"
-            f"单侧原始标签数量: {len(single_sequence)}\n"
-            f"同侧原始标签数量: {len(same_sequence)}"
+            f"事件Label count: {len(events)}\n"
+            f"单侧原始Label count: {len(single_sequence)}\n"
+            f"同侧原始Label count: {len(same_sequence)}"
         )
 
     if PRINT_EVENTS:
         print_event_mapping(
             events,
             single_sequence,
-            title=f"[{direction} 单侧地形标签映射]",
+            title=f"[{direction} 单侧地形label mapping]",
         )
 
         print_event_mapping(
             events,
             same_sequence,
-            title=f"[{direction} 同侧地形标签映射]",
+            title=f"[{direction} 同侧地形label mapping]",
         )
 
     # Assign single-side terrain labels
@@ -922,9 +922,9 @@ def process_one_file(input_file):
 def main():
     print("=" * 100)
     print("[Z1方向地形标签批处理开始]")
-    print(f"被试: {SUB_ID}")
-    print(f"输入文件夹: {SUB_DIR}")
-    print(f"待处理文件数量: {len(INPUT_FILES)}")
+    print(f"Subject: {SUB_ID}")
+    print(f"Input directory: {SUB_DIR}")
+    print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
     results = []
@@ -952,11 +952,11 @@ def main():
 
             print(
                 f"[完成] {result['direction']} | "
-                f"行数: {result['row_count']} | "
-                f"原始标签数量: 单侧={result['single_label_count']}, "
+                f"Rows: {result['row_count']} | "
+                f"原始Label count: 单侧={result['single_label_count']}, "
                 f"同侧={result['same_label_count']} | "
-                f"事件标签数量={result['event_count']} | "
-                f"输出: {result['output_file']}"
+                f"Labeled event count={result['event_count']} | "
+                f"Output: {result['output_file']}"
             )
 
         except Exception as e:
@@ -969,18 +969,18 @@ def main():
 
             print("=" * 100)
             print("[失败] 当前文件处理失败，已跳过")
-            print(f"文件: {input_file}")
-            print(f"错误类型: {type(e).__name__}")
-            print(f"错误信息: {e}")
+            print(f"File: {input_file}")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Error message: {e}")
             print("=" * 100)
 
             continue
 
     print("\n")
     print("#" * 100)
-    print("[全部处理完成]")
-    print(f"成功数量: {len(results)}")
-    print(f"失败数量: {len(failed_files)}")
+    print("[All processing complete]")
+    print(f"Success count: {len(results)}")
+    print(f"Failure count: {len(failed_files)}")
     print("#" * 100)
 
     if results:
@@ -988,19 +988,19 @@ def main():
         for r in results:
             print(
                 f"{r['direction']} | "
-                f"原始标签数量: 单侧={r['single_label_count']}, "
+                f"原始Label count: 单侧={r['single_label_count']}, "
                 f"同侧={r['same_label_count']} | "
-                f"事件标签数量={r['event_count']} | "
-                f"l_label==3事件={r['l3_event_count']} | "
-                f"r_label==3事件={r['r3_event_count']} | "
+                f"Labeled event count={r['event_count']} | "
+                f"l_label==3 events={r['l3_event_count']} | "
+                f"r_label==3 events={r['r3_event_count']} | "
                 f"输出={r['output_file']}"
             )
 
     if failed_files:
         print("\n[失败文件]")
         for item in failed_files:
-            print(f"文件: {item['file']}")
-            print(f"原因: {item['reason']}")
+            print(f"File: {item['file']}")
+            print(f"Reason: {item['reason']}")
             print("-" * 100)
 
 
