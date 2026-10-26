@@ -453,13 +453,13 @@ def collect_xy_terrain_events(df):
     XY1~XY6 贴标事件规则：
 
     Event 1:
-        第一个 l_label == 3
+        First l_label == 3
 
     Event 2:
-        第二个 l_label == 3
+        Second l_label == 3
 
     Event 3:
-        第二个 l_label == 3 之后，第一个 r_label == 3
+        First r_label == 3 after the second l_label == 3
 
     Event 4 and later:
         After the third event,l_label == 3 或 r_label == 3
@@ -505,7 +505,7 @@ def collect_xy_terrain_events(df):
     ]
 
     if len(r3_after_second) == 0:
-        raise RuntimeError("第二个 l_label == 3 后没有找到 r_label == 3。")
+        raise RuntimeError("Second l_label == 3 后没有找到 r_label == 3。")
 
     third_event = dict(r3_after_second[0])
     third_event["event_rule"] = "third_r_label_3_after_second_l3"
