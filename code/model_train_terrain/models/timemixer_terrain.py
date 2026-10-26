@@ -14,7 +14,7 @@ import torch.nn.functional as F
 
 
 class PastDecomposableMixing(nn.Module):
-    """时序多尺度解构混合块 (TimeMixer 核心单元)"""
+    """Temporal multiscale decomposition and mixing block (TimeMixer core)"""
 
     def __init__(self, d_model, dropout=0.1):
         super().__init__()
@@ -99,10 +99,10 @@ class TimeMixerTerrainRegression(nn.Module):
         return h.mean(dim=1)
 
     def forward(self, x):
-        """输入:
+        """Input:
 
-            x: [B, 200, 42] (IMU 序列)
-        输出:
+            x: [B, 200, 42] (IMU sequence)
+        Output:
             dict: {"terrain": [B, 30, 6]}
         """
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
@@ -116,7 +116,7 @@ class TimeMixerTerrainRegression(nn.Module):
                 x = x.transpose(1, 2)
             else:
                 raise ValueError(
-                    f"输入特征维度 {x.shape} 与设定 input_dim {self.input_dim} 不一致"
+                    f"Input feature shape {x.shape} differs from configured input_dim {self.input_dim}"
                 )
 
         B = x.size(0)
@@ -160,6 +160,6 @@ if __name__ == "__main__":
     dummy_x = torch.randn(8, 200, 42)
     out = model(dummy_x)
 
-    print("TimeMixer 验证通过:")
+    print("TimeMixer validation passed:")
     print("terrain shape:", out["terrain"].shape)  # torch.Size([8, 30, 6])
-    assert out["terrain"].shape == (8, 30, 6), "输出维度不一致！"
+    assert out["terrain"].shape == (8, 30, 6), "Output shape mismatch!"
