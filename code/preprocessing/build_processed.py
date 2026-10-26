@@ -144,7 +144,7 @@ CONTRA_COLUMNS = [
 ]
 
 
-# 常见旧列名 -> 新列名
+# Common legacy column names -> new column names
 ALIASES = {
     "timestamp": [
         "timestamp", "Timestamp", "time_stamp", "TimeStamp",
@@ -250,7 +250,7 @@ def detect_terrain_column_mapping(columns, task_name=None):
 
     task_name = (task_name or "").lower()
 
-    # 根据任务判断单轴任务的轴
+    # Determine the axis of a single-axis task from its task name
     task_axis = None
     if task_name.startswith("x_"):
         task_axis = "x"
@@ -268,14 +268,14 @@ def detect_terrain_column_mapping(columns, task_name=None):
         if "terrain" not in token_set and "terrain" not in clean:
             continue
 
-        # 先查源列里是否明确写了 x/y/z
+        # First check whether source columns explicitly specify x/y/z
         axis = None
         for a in ("x", "y", "z"):
             if a in token_set:
                 axis = a
                 break
 
-        # 单轴任务的 generic terrain_*_label 不带轴名
+        # Generic terrain_*_label columns in single-axis tasks omit the axis name
         if axis is None:
             axis = task_axis
 
@@ -285,7 +285,7 @@ def detect_terrain_column_mapping(columns, task_name=None):
         # corrected semantic mapping:
         # single = ipsilateral
         # same   = contralateral
-        # double = contralateral（单独 x 任务）
+        # double = contralateral (for the x-only task)
         if "single" in token_set:
             side = "ipsilateral"
         elif "same" in token_set:
@@ -306,8 +306,8 @@ def normalize_columns(df, task_name=None):
     df = df.copy()
     df.columns = [clean_column_name(c) for c in df.columns]
 
-    # 先对 terrain 标签做宽松识别。
-    # 这样即使源文件列名不是完全固定格式，也能识别 same/single + x/y/z。
+    # First identify terrain labels using flexible matching.
+    # This recognizes same/single and x/y/z even if source column names vary.
     terrain_auto_map = detect_terrain_column_mapping(df.columns, task_name=task_name)
     if terrain_auto_map:
         df = df.rename(columns=terrain_auto_map)
@@ -315,7 +315,7 @@ def normalize_columns(df, task_name=None):
     lower_to_real = {str(c).lower(): c for c in df.columns}
     rename_map = {}
 
-    # 先处理特殊 alias
+    # Handle special aliases first
     for canonical, candidates in ALIASES.items():
         if canonical in df.columns:
             continue
@@ -328,7 +328,7 @@ def normalize_columns(df, task_name=None):
 
     df = df.rename(columns=rename_map)
 
-    # data 传感器列按大小写不敏感匹配 canonical
+    # Match sensor data columns to canonical names case-insensitively
     lower_to_real = {str(c).lower(): c for c in df.columns}
     for canonical in DATA_COLUMNS:
         if canonical == "time_s":
@@ -394,13 +394,13 @@ def calculate_time_s(timestamp_series):
     """
     s = timestamp_series.copy()
 
-    # 1) 优先判断原列是否明显为 datetime 类型
+    # 1) First check whether the source column is already datetime
     if pd.api.types.is_datetime64_any_dtype(s):
         dt = pd.to_datetime(s)
         time_s = (dt - dt.iloc[0]).dt.total_seconds()
         return time_s.astype(float), "datetime"
 
-    # 2) 尝试数值
+    # 2) Try numeric conversion
     numeric = pd.to_numeric(s, errors="coerce")
     numeric_ratio = numeric.notna().mean()
 
@@ -418,10 +418,10 @@ def calculate_time_s(timestamp_series):
         median_dt = float(valid_diff.median()) if len(valid_diff) else np.nan
         abs_base = abs(base)
 
-        # 依据 epoch 数量级 + 相邻采样间隔判断单位
-        # 秒级 epoch 通常 ~1e9
-        # 毫秒级 epoch 通常 ~1e12
-        # 微秒级 epoch 通常 ~1e15
+        # Infer units from epoch magnitude and adjacent sampling intervals
+        # Epoch seconds are usually around 1e9
+        # Epoch milliseconds are usually around 1e12
+        # Epoch microseconds are usually around 1e15
         if abs_base >= 1e14:
             return diff / 1_000_000.0, "numeric_microseconds"
         elif abs_base >= 1e11:
@@ -429,17 +429,17 @@ def calculate_time_s(timestamp_series):
         elif abs_base >= 1e8:
             return diff, "numeric_seconds"
         else:
-            # 非 epoch 数值：根据相邻间隔做保守判断
+            # For non-epoch numeric values, infer units conservatively from intervals
             if np.isfinite(median_dt):
                 if median_dt >= 1000:
                     return diff / 1_000_000.0, "relative_microseconds"
                 elif median_dt >= 1:
-                    # 常见 100 Hz 毫秒时间戳相邻约 10
+                    # At 100 Hz, adjacent timestamps in milliseconds differ by about 10
                     return diff / 1_000.0, "relative_milliseconds"
 
             return diff, "relative_seconds"
 
-    # 3) 最后尝试字符串 datetime
+    # 3) Finally try parsing datetime strings
     dt = pd.to_datetime(s, errors="coerce")
     if dt.notna().mean() >= 0.95:
         if pd.isna(dt.iloc[0]):
@@ -589,7 +589,7 @@ def process_one_group(
         ) + str(e)
         return report
 
-    # 强制第一帧为 0，减小浮点误差
+    # Set the first frame to 0 to reduce floating-point error
     time_s = pd.Series(time_s, index=df.index, dtype=float)
     if len(time_s):
         time_s.iloc[0] = 0.0
@@ -610,11 +610,11 @@ def process_one_group(
         _, data_status = write_excel(data_out, data_path, overwrite=overwrite)
         report["data_file"] = str(data_path)
 
-        # label 的时间轴必须来自 data
+        # The label time axis must come from the data
         master_time_s = data_out["time_s"].copy()
     else:
-        # 即使 data 缺列，也先保留计算出的主 time_s 做检查；
-        # 但不会把不完整 data 写入正式数据库。
+        # Retain the computed primary time_s for validation even when data columns are missing;
+        # do not write incomplete data to the formal dataset.
         master_time_s = df["time_s"].copy()
         data_status = "missing_columns"
 
@@ -636,22 +636,22 @@ def process_one_group(
 
     # ---------- TERRAIN LABELS ----------
     #
-    # 规则：
-    # walk_* / stair_*：没有 terrain 标签，不生成 terrain Excel。
+    # Rules:
+    # walk_* / stair_*: no terrain labels; do not generate terrain Excel files.
     #
-    # 其他任务根据任务类型确定“理论上应该存在”的轴：
+    # For other tasks, determine the theoretically expected axes from the task type:
     # x_*             -> x
     # y_*             -> y
     # z1~z4_*         -> z
     # xy1~xy6_*       -> x, y
     # xyz1~xyz3_*     -> x, y, z
     #
-    # 但正式输出时仍然按照源文件“实际存在”的 terrain 列提取：
-    # - 有什么提取什么
-    # - 不人为补空列
-    # - 若理论应有的标签缺失，在 _build_report.csv 中报告
+    # When exporting, extract only terrain columns actually present in the source:
+    # - Extract available columns
+    # - Do not create missing columns artificially
+    # - Report missing expected labels in _build_report.csv
     #
-    # normalize_columns() 已完成：
+    # normalize_columns() has completed:
     # terrain_x_single_label -> terrain_ipsilateral_x_label
     # terrain_y_single_label -> terrain_ipsilateral_y_label
     # terrain_z_single_label -> terrain_ipsilateral_z_label
@@ -682,8 +682,8 @@ def process_one_group(
         if re.match(r"^z\d+_", t):
             return ["z"]
 
-        # 未知的非 walk/stair 任务：
-        # 不强行猜轴，但后面仍会按实际存在列提取。
+        # Unknown non-walk/stair tasks:
+        # Do not guess axes; extract columns actually present in later steps.
         return []
 
     expected_axes = expected_terrain_axes(task)
@@ -700,7 +700,7 @@ def process_one_group(
         "z": "terrain_contralateral_z_label",
     }
 
-    # 按 x, y, z 固定顺序提取源文件实际存在的标签。
+    # Extract existing source labels in fixed x, y, z order.
     ipsi_available = [
         ipsi_by_axis[axis]
         for axis in ["x", "y", "z"]
@@ -713,7 +713,7 @@ def process_one_group(
         if contra_by_axis[axis] in df.columns
     ]
 
-    # 理论应有但源文件中没有的标签。
+    # Labels expected in principle but absent from the source.
     ipsi_missing = [
         ipsi_by_axis[axis]
         for axis in expected_axes
@@ -731,7 +731,7 @@ def process_one_group(
     report["detected_ipsi_columns"] = ",".join(ipsi_available)
     report["detected_contra_columns"] = ",".join(contra_available)
 
-    # walk / stair 不需要 terrain。
+    # Walk/stair tasks do not require terrain labels.
     terrain_required = not (
         task.lower().startswith("walk_")
         or task.lower().startswith("stair_")
@@ -778,11 +778,11 @@ def process_one_group(
         report["contra_file"] = str(contra_path)
 
     # ---------- TERRAIN QC ----------
-    # 对非 walk/stair 任务：
-    # 如果完全没有找到某一侧 terrain 标签，要明确报错。
+    # For non-walk/stair tasks:
+    # Explicitly report if no terrain labels are found for a side.
     if terrain_required:
         if not ipsi_available and not ipsi_missing:
-            # 未知任务名时，expected_axes 可能为空。
+            # expected_axes may be empty for unknown task names.
             ipsi_missing = ["ALL_TERRAIN_IPSILATERAL"]
             report["missing_ipsi_columns"] = ",".join(ipsi_missing)
 
@@ -790,7 +790,7 @@ def process_one_group(
             contra_missing = ["ALL_TERRAIN_CONTRALATERAL"]
             report["missing_contra_columns"] = ",".join(contra_missing)
 
-        # 如果实际出现的轴与理论任务轴不符，保留文件但给 warning。
+        # Keep the file but warn when observed axes differ from expected task axes.
         actual_ipsi_axes = [
             axis for axis, col in ipsi_by_axis.items()
             if col in df.columns
@@ -822,7 +822,7 @@ def process_one_group(
                     if report["warning"] else ""
                 ) + msg
 
-        # 同侧和对侧实际存在的轴不一致，也给 warning。
+        # Also warn if same-side and contralateral available axes differ.
         actual_ipsi_set = set(actual_ipsi_axes)
         actual_contra_set = set(actual_contra_axes)
 
@@ -846,15 +846,15 @@ def process_one_group(
     if gait_missing:
         problems.append("GAIT_MISSING")
 
-    # walk/stair 不检查 terrain。
+    # Do not validate terrain labels for walk/stair tasks.
     if terrain_required:
         if ipsi_missing:
             problems.append("IPSI_MISSING")
         if contra_missing:
             problems.append("CONTRA_MISSING")
 
-        # 对非 walk/stair，如果某一侧连一个 terrain 标签都没找到，
-        # 也必须报告。
+        # For non-walk/stair tasks, if a side has no terrain label at all,
+        # this must also be reported.
         if not ipsi_available and "IPSI_MISSING" not in problems:
             problems.append("IPSI_MISSING")
 
