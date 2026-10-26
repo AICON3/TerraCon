@@ -1326,11 +1326,11 @@ def build_total_label(
         ]
 
         raise RuntimeError(
-            f"[{side}] 标签逻辑错误："
-            f"第一个Event3({first_e3_time:.3f}s)"
-            f"到最后一个Event1({last_e1_time:.3f}s)"
-            f"之间仍有 {internal_zero_count} 个0。"
-            f"第一个异常时间={zero_times[0]:.3f}s"
+            f"[{side}] Label consistency error: "
+            f"first Event3 ({first_e3_time:.3f}s) "
+            f"to final Event1 ({last_e1_time:.3f}s) "
+            f"contains {internal_zero_count} zero labels. "
+            f"First abnormal time={zero_times[0]:.3f}s"
         )
 
     qc_rows.append({
@@ -1605,8 +1605,8 @@ def build_ui(
 
     fig1.suptitle(
         f"{SUBJECT_ID} | {SCENARIO}\n"
-        "STEP1：Pelvis固定；拖 L/R shank 做左右整体对齐。"
-        "点击shank事件线=上下4图同步阴影；[S]保存",
+        "STEP1: Keep pelvis fixed; drag L/R shank to align each side."
+        "Click a shank event to shade four plots together; [S] to save",
         fontsize=10,
         fontweight="bold",
     )
@@ -1730,8 +1730,8 @@ def build_ui(
 
     fig2.suptitle(
         f"{SUBJECT_ID} | {SCENARIO}\n"
-        "STEP2：Shank固定；拖 thigh/foot 做单腿内部对齐。"
-        "点击任意事件线=同侧上下3图同步阴影；[S]保存",
+        "STEP2: Keep shank fixed; drag thigh/foot to align within each leg."
+        "Click any event to shade three same-side plots; [S] to save",
         fontsize=10,
         fontweight="bold",
     )
@@ -2060,7 +2060,7 @@ def build_ui(
         ]
 
         print(
-            f"[STEP1] 开始移动 {role} shank；Pelvis固定"
+            f"[STEP1] Moving {role} shank; pelvis remains fixed"
         )
 
     def on_step1_motion(evt):
@@ -2272,7 +2272,7 @@ def build_ui(
             )
 
             print(
-                f"[STEP2] Event {evt.key} 添加模式"
+                f"[STEP2] Add Event {evt.key} mode"
             )
 
         elif evt.key in (
@@ -2284,7 +2284,7 @@ def build_ui(
             ] = "shift"
 
             print(
-                "[STEP2] 曲线平移模式"
+                "[STEP2] Curve-shift mode"
             )
 
         elif evt.key in (
@@ -2406,9 +2406,9 @@ def build_ui(
                 ]
             ):
                 print(
-                    f"[STEP2] {seg_name} 不使用 Event {event_id}。"
-                    "最终标签只允许：foot=Event1；shank=Event2/Event3；"
-                    "thigh不参与事件标签。"
+                    f"[STEP2] {seg_name} does not use Event {event_id}."
+                    "Final labels accept foot Event1 and shank Event2/Event3 only; "
+                    "thigh events do not contribute to labels."
                 )
                 return
 
@@ -2469,8 +2469,8 @@ def build_ui(
                 "shank"
             ):
                 print(
-                    f"[STEP2] {seg_name} 已在 STEP1 与 pelvis 对齐，"
-                    "此处固定；请移动 thigh/foot。"
+                    f"[STEP2] {seg_name} was aligned with pelvis in STEP1 and is "
+                    "fixed here; move thigh/foot instead."
                 )
                 return
 
@@ -2487,7 +2487,7 @@ def build_ui(
             ] = state.internal_manual_shift
 
             print(
-                f"[STEP2] 开始移动 {seg_name}，shank固定"
+                f"[STEP2] Moving {seg_name}; shank remains fixed"
             )
 
     def on_step2_motion(evt):
@@ -2590,7 +2590,7 @@ def build_ui(
     def on_step2_release(evt):
         if crop_state["drag"] is not None:
             print(
-                f"[裁剪范围] {crop_state['left']:.3f}s ~ {crop_state['right']:.3f}s"
+                f"[Crop range] {crop_state['left']:.3f}s ~ {crop_state['right']:.3f}s"
             )
             crop_state["drag"] = None
             return
@@ -2951,10 +2951,10 @@ def save_result(
 
         if not legal:
             raise RuntimeError(
-                "发现非法标签事件来源："
+                "Invalid label event source detected: "
                 f"{ev.owner_seg}, Event{ev.event_id}。"
-                "最终标签只允许 foot Event1 "
-                "和 shank Event2/Event3。"
+                "Final labels only allow foot Event1 "
+                "and shank Event2/Event3."
             )
 
     # --------------------------------------------------------
@@ -3103,7 +3103,7 @@ def save_result(
     # Before saving, require AllEvents rows to match the number of displayed events.
     if len(event_rows) != len(visible_events):
         raise RuntimeError(
-            "事件保存数量校验失败："
+            "Saved event-count validation failed: "
             f"visible={len(visible_events)}, "
             f"saved={len(event_rows)}"
         )
@@ -3139,44 +3139,44 @@ def save_result(
 
     print("=" * 80)
     print(
-        f"[保存完成] {OUTPUT_LABEL_FILE}"
+        f"[Saved] {OUTPUT_LABEL_FILE}"
     )
     print(
-        "[说明] 只保存主 Excel，不再生成 alignment_events.xlsx"
+        "[Info] Only the main Excel workbook is saved; alignment_events.xlsx is not generated"
     )
     print("")
     print(
-        f"原始 {rows_before} 行 -> "
-        f"最终 {len(out)} 行"
+        f"Original {rows_before} rows -> "
+        f"final {len(out)} rows"
     )
     print(
-        f"删除开头 {trim_start} 行；"
-        f"删除结尾 {rows_before - trim_end} 行"
+        f"Removed {trim_start} starting rows; "
+        f"removed {rows_before - trim_end} ending rows"
     )
     print("")
     print(
-        f"[事件审计] 当前图上有效事件线 = {len(visible_events)} 条；"
-        f"AllEvents 已保存 = {len(event_rows)} 条"
+        f"[Event audit] Visible event lines = {len(visible_events)}; "
+        f"AllEvents records saved = {len(event_rows)}"
     )
     print(
-        f"[人工事件] Source=manual 共 "
-        f"{sum(1 for ev in visible_events if ev.source == 'manual')} 条"
+        f"[Manual events] Source=manual count: "
+        f"{sum(1 for ev in visible_events if ev.source == 'manual')}"
     )
     print(
-        f"[人工修改] Edited=True 共 "
-        f"{sum(1 for ev in visible_events if ev.edited)} 条"
+        f"[Manual edits] Edited=True count: "
+        f"{sum(1 for ev in visible_events if ev.edited)}"
     )
     print("")
-    print("主 Excel 最后只新增两列：")
+    print("Only two columns are added to the final Excel workbook:")
     print("  l_label")
     print("  r_label")
     print("")
-    print("标签规则：")
-    print("  开始 -> first E3 = 0")
+    print("Labeling rules:")
+    print("  Start -> first E3 = 0")
     print("  E3 -> E1 = 3")
     print("  E1 -> E2 = 1")
     print("  E2 -> next E3 = 2")
-    print("  last E1 -> 结束 = 0")
+    print("  Last E1 -> end = 0")
     print("=" * 80)
 
 
@@ -3200,23 +3200,23 @@ def main():
     )
 
     print("=" * 80)
-    print("使用顺序：")
+    print("Usage order:")
     print("")
-    print("STEP1 窗口：")
-    print("  Pelvis X/Y 固定")
-    print("  拖 L shank -> 左侧整体时间移动")
-    print("  拖 R shank -> 右侧整体时间移动")
+    print("STEP1 window:")
+    print("  Pelvis X/Y fixed")
+    print("  Drag L shank -> shift the whole left side in time")
+    print("  Drag R shank -> shift the whole right side in time")
     print("")
-    print("STEP2 窗口：")
-    print("  shank 固定")
-    print("  拖 thigh / foot -> 单腿内部微调")
-    print("  事件只用于总标签：foot只加E1；shank只加E2/E3；thigh原Event2保留但固定，仅作参考")
-    print("  拖虚线 -> 微调事件")
-    print("  右键虚线 -> 删除事件")
+    print("STEP2 window:")
+    print("  Shank fixed")
+    print("  Drag thigh/foot -> fine-tune alignment within the leg")
+    print("  Aggregate label events: foot E1; shank E2/E3; thigh E2 remains fixed as a reference only")
+    print("  Drag dashed line -> fine-tune event position")
+    print("  Right-click dashed line -> delete event")
     print("")
-    print("任一窗口按 S -> 保存")
+    print("Press S in either window to save")
     print("")
-    print("最终主Excel只新增 l_label / r_label")
+    print("Only l_label and r_label are added to the final workbook")
     print("=" * 80)
 
     plt.show()
