@@ -78,11 +78,11 @@ class SegmentState:
     shank:
         internal_auto_shift = 0
         internal_manual_shift = 0
-        final shift 只来自 STEP1 的 side_base_shift
+        The final shift comes only from the STEP1 side_base_shift
 
     thigh / foot:
-        在 shank 的 side_base_shift 基础上，
-        再叠加本侧内部自动/人工 shift
+        On top of the shank side_base_shift,
+        add automatic or manual within-side shifts
     """
 
     def __init__(
@@ -291,24 +291,24 @@ def detect_side_features(
     df,
 ):
     """
-    图上保留原来的主要事件线：
+    Preserve the original main event lines in the plots:
 
-        thigh Event2  = thigh 局部最小
-        shank Event2  = shank 局部最大
-        shank Event3  = shank 局部最小
-        foot  Event1  = foot 局部最小
-        foot  Event3  = foot 局部最大
+        thigh Event2 = local thigh minimum
+        shank Event2 = local shank maximum
+        shank Event3 = local shank minimum
+        foot Event1 = local foot minimum
+        foot Event3 = local foot maximum
 
-    但最终左右统一标签只读取：
+    But the final left/right aggregate labels use only:
         foot Event1
         shank Event2
         shank Event3
 
-    thigh Event2 和 foot Event3：
-        只作为视觉参考线，
-        不参与标签，
-        不参与自动对齐，
-        不决定任何 shift。
+    Thigh Event2 and foot Event3:
+        are visual references only,
+        do not contribute to labels,
+        are not used for automatic alignment,
+        and do not determine shifts.
     """
 
     thigh = df[
@@ -506,23 +506,23 @@ def initialize_internal_shifts(
     segment_states,
 ):
     """
-    不再使用其他 IMU 的事件位置进行自动内部对齐。
+    Do not automatically align within a leg using event positions from other IMUs.
 
-    原则：
+    Principle:
         STEP1:
-            pelvis 固定
-            用户拖左/右 shank，确定左右侧相对 pelvis 的位置
+            Keep the pelvis fixed
+            Users drag the left/right shank to set each side relative to the pelvis
 
         STEP2:
-            shank 固定
-            用户直接拖 thigh / foot 曲线去对齐 shank
+            Keep the shank fixed
+            Users drag the thigh/foot curves to align with the shank
 
-    因此：
+    Therefore:
         thigh internal auto shift = 0
         shank internal auto shift = 0
         foot  internal auto shift = 0
 
-    最终移动多少，只取决于用户实际拖动曲线得到的 shift。
+    The final offset depends only on shifts produced by actual user drags.
     """
 
     thigh_seg = f"{prefix}thigh"
@@ -698,12 +698,12 @@ def shift_sensor_columns(
     shift_samples,
 ):
     """
-    prefix 示例：
+    Example prefix:
         l_foot
         l_shank
         pelvis
 
-    该 IMU 的所有数据列一起移动。
+    All data columns for this IMU move together.
     """
 
     cols = [
@@ -733,7 +733,7 @@ def common_trim_range(
     shifts,
 ):
     """
-    只删除由于 shift 新产生的首尾空缺。
+    Remove only leading and trailing gaps introduced by the shift.
     """
 
     shifts = list(shifts)
@@ -781,54 +781,54 @@ def build_total_label(
 ):
     """
     ==========================================================
-    左/右侧最终统一标签 —— 连续贴标版
+    Final left/right aggregate labels — continuous assignment
     ==========================================================
 
-    最终规则严格为：
+    Final rules:
 
-        数据开始 -> 第一个 shank Event3      = 0
+        Data start -> first shank Event3 = 0
 
         Event3 -> Event1                    = 3
         Event1 -> Event2                    = 1
-        Event2 -> 下一个 Event3              = 2
+        Event2 -> next Event3 = 2
 
-        然后继续：
+        Then repeat:
         Event3 -> Event1                    = 3
         Event1 -> Event2                    = 1
         Event2 -> Event3                    = 2
         ...
 
-        最后一个 Event3 -> 最后一个 Event1   = 3
-        最后一个 Event1 -> 数据结束           = 0
+        Final Event3 -> final Event1 = 3
+        Final Event1 -> data end = 0
 
 
-    Event 来源固定：
+    Event sources are fixed:
         Event1 = foot
         Event2 = shank
         Event3 = shank
 
 
-    【重要修正】
-    旧版的问题：
-        如果某个 E3-to-E3 周期没有严格找到 E1 或 E2，
-        代码会 continue。
-        由于 labels 初始值是 0，
-        因此会在标签中间产生一整段 0。
+    [Important correction]
+    Issue in the previous version:
+        If an E3-to-E3 cycle was missing a valid E1 or E2,
+        the code would continue to the next cycle.
+        Because labels were initialized to 0,
+        this left an entire interval of zeros in the middle.
 
-    本版改成：
-        标签按“实际存在的事件线”连续传播。
+    Current version:
+        Propagate labels continuously using existing event lines.
 
-        遇到 Event3 -> 从该时刻开始贴 3
-        遇到 Event1 -> 从该时刻开始贴 1
-        遇到 Event2 -> 从该时刻开始贴 2
-        遇到下一个 Event3 -> 再改成 3
+        On Event3 -> assign 3 from that time
+        On Event1 -> assign 1 from that time
+        On Event2 -> assign 2 from that time
+        On the next Event3 -> assign 3 again
 
-    因此：
-        第一个 Event3 到最后一个 Event1 之间绝不允许出现 0。
+    Therefore:
+        No zeros may occur between the first Event3 and final Event1.
 
-    同时：
-        最后一个 Event3 到最后一个 Event1 强制贴 3，
-        最后一个 Event1 及以后强制贴 0。
+    Also:
+        Force label 3 between the final Event3 and final Event1,
+        and force label 0 from the final Event1 onward.
     """
 
     t = np.asarray(
