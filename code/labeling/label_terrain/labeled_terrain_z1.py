@@ -227,7 +227,7 @@ def read_excel_auto_sheet(input_file):
 
     except Exception as e:
         raise RuntimeError(
-            "读取 Excel 文件失败。\n"
+            "Failed to read the Excel workbook.\n"
             f"文件: {input_file}\n"
             f"错误类型: {type(e).__name__}\n"
             f"错误信息: {e}"
@@ -294,7 +294,7 @@ def detect_z1_direction_from_filename(input_file):
 
 def extract_subject_id(input_file):
     """
-    从路径或文件名中提取 sub_xxx。
+    Extract sub_xxx from the path or filename.
     """
     text = input_file.replace("\\", "/")
 
@@ -313,11 +313,11 @@ def build_output_file(input_file):
     """
     生成输出文件夹和输出文件路径。
 
-    输出文件夹：
+    Output directory:
         sub_xxx_labeled_terrain
 
-    输出文件：
-        原文件名 + _terrain.xlsx
+    Output file:
+        Original filename + _terrain.xlsx
     """
     subject_id = extract_subject_id(input_file)
 
@@ -353,8 +353,8 @@ def save_excel_safely(df, output_file, sheet_name="data"):
     """
     Save the Excel workbook safely.
 
-    如果目标文件被 Excel/WPS 打开导致无法覆盖，
-    自动另存为 _v2, _v3, ...
+    If the target cannot be overwritten because it is open in Excel/WPS,
+    automatically save as _v2, _v3, etc.
     """
     out_dir = os.path.dirname(output_file)
 
@@ -391,7 +391,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
                 continue
 
         raise PermissionError(
-            "尝试多个备用文件名后仍无法保存，请关闭 Excel/WPS 后重试。"
+            "Could not save using alternative names; close Excel/WPS and retry."
         )
 
 
@@ -401,13 +401,13 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
     """
-    检测指定 label_col 中某个 label_value 的起始点。
+    Detect the first sample of a label_value run in label_col.
 
     rising edge 条件：
         当前行 label == label_value
         且上一行 label != label_value
 
-    连续一段 label==3 只算一个事件。
+    Each contiguous run of label == 3 counts as one event.
     """
     if label_col not in df.columns:
         raise KeyError(f"缺少列: {label_col}")
@@ -452,19 +452,19 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 def collect_z1_terrain_events_like_y(df):
     """
-    Z1_fwd 和 Z1_bwd 使用和 Y 一样的贴标逻辑：
+    Z1_fwd 和 Z1_bwd 使用和 Y 一样的贴标Logic:
 
     Event 1:
-        第一个 l_label == 3
+        First l_label == 3
 
     Event 2:
-        第二个 l_label == 3
+        Second l_label == 3
 
     Event 3:
-        第二个 l_label == 3 之后，第一个 r_label == 3
+        First r_label == 3 after the second l_label == 3
 
     Event 4 and later:
-        第三个事件之后，l_label == 3 或 r_label == 3
+        After the third event,l_label == 3 或 r_label == 3
 
     返回：
         events
@@ -520,7 +520,7 @@ def collect_z1_terrain_events_like_y(df):
 
     if len(r3_after_second) == 0:
         raise RuntimeError(
-            "已经找到第二个 l_label == 3，"
+            "已经找到Second l_label == 3，"
             "但其后没有找到 r_label == 3，无法执行第 3 次贴标。"
         )
 
@@ -592,7 +592,7 @@ def print_count_summary(
     same_sequence,
 ):
     """
-    打印简洁数量结果：
+    Print a concise count summary:
 
     原始标签数量：
         你给的标签序列数量。
@@ -663,11 +663,11 @@ def apply_terrain_sequence(
     """
     Assign terrain labels from the event sequence.
 
-    贴标逻辑：
+    贴标Logic:
         Before the first event:
             initial_label
 
-        第 k 个事件 到 第 k+1 个事件之前：
+        From event k to just before event k+1:
             terrain_sequence[k]
 
         After the final event:
@@ -726,7 +726,7 @@ def apply_terrain_sequence(
 def force_zero_from_last_right_label3(df, output_cols):
     """
     从最后一个 r_label == 3 的起始事件开始，
-    将指定地形标签列强制置为 0。
+    Force the specified terrain-label column to 0.
     """
     if "r_label" not in df.columns:
         raise KeyError("缺少列: r_label")
@@ -756,8 +756,8 @@ def force_zero_from_last_right_label3(df, output_cols):
 
 def print_event_mapping(events, sequence, title):
     """
-    可选打印事件映射。
-    默认 PRINT_EVENTS=False，不会调用。
+    Optionally print event mappings.
+    Not called by default because PRINT_EVENTS=False.
     """
     print("=" * 130)
     print(title)
@@ -812,7 +812,7 @@ def process_one_file(input_file):
 
     if missing:
         raise KeyError(
-            "当前表格缺少必要列：\n"
+            "Required columns are missing:\n"
             + "\n".join(missing)
             + "\n\n请确认输入文件是已经贴好步态标签的表格。"
         )
