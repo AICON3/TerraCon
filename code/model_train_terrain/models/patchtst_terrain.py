@@ -98,10 +98,10 @@ class PatchTSTTerrainRegression(nn.Module):
                     nn.init.zeros_(m.bias)
 
     def forward(self, x):
-        """输入:
+        """Input:
 
-            x: [B, 200, 42] (IMU 序列)
-        输出:
+            x: [B, 200, 42] (IMU sequence)
+        Output:
             dict: {"terrain": [B, 30, 6]}
         """
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
@@ -150,6 +150,6 @@ if __name__ == "__main__":
     x = torch.randn(8, 200, 42)
     out = model(x)
 
-    print("PatchTST 验证成功:")
+    print("PatchTST validation passed:")
     print("terrain shape:", out["terrain"].shape)  # torch.Size([8, 30, 6])
-    assert out["terrain"].shape == (8, 30, 6), "输出维度不符合预期！"
+    assert out["terrain"].shape == (8, 30, 6), "Unexpected output shape!"
