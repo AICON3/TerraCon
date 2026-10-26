@@ -785,7 +785,7 @@ def apply_terrain_sequence(
     if len(events) != len(terrain_sequence):
         raise ValueError(
             f"{output_col}: Event count {len(events)} "
-            f"和terrain-sequence length {len(terrain_sequence)} do not match."
+            f"and terrain-sequence length {len(terrain_sequence)} do not match."
         )
 
     first_idx = events[0]["idx"]
@@ -833,7 +833,7 @@ def force_zero_from_last_side_label3(df, output_cols, side):
         label_col = "r_label"
         side_name = "R"
     else:
-        raise ValueError("side 只能是 'L' or 'R'")
+        raise ValueError("side must be 'L' or 'R'")
 
     if label_col not in df.columns:
         raise KeyError(f"Missing column: {label_col}")
@@ -1069,7 +1069,7 @@ def main():
             print(
                 f"[Completed] {result['direction']} | "
                 f"Rows: {result['row_count']} | "
-                f"原始Label count: single-side={result['single_label_count']}, "
+                f"Original label count: single-side={result['single_label_count']}, "
                 f"bilateral={result['double_label_count']} | "
                 f"Labeled event count={result['event_count']} | "
                 f"Output: {result['output_file']}"
@@ -1104,7 +1104,7 @@ def main():
         for r in results:
             print(
                 f"{r['direction']} | "
-                f"原始Label count: single-side={r['single_label_count']}, "
+                f"Original label count: single-side={r['single_label_count']}, "
                 f"bilateral={r['double_label_count']} | "
                 f"Labeled event count={r['event_count']} | "
                 f"l_label==3 events={r['l3_event_count']} | "
