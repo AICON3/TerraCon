@@ -302,9 +302,9 @@ def read_excel_auto_sheet(input_file):
 
     if sheet_name is None:
         sheet_name = xls.sheet_names[0]
-        print(f"[Info] 未找到 data/Data/DATA，自动读取第一个Worksheet: {sheet_name}")
+        print(f"[Info] data/Data/DATA not found; reading first worksheet: {sheet_name}")
     else:
-        print(f"[Info] 使用Worksheet: {sheet_name}")
+        print(f"[Info] Using worksheet: {sheet_name}")
 
     df = pd.read_excel(input_file, sheet_name=sheet_name)
 
@@ -345,7 +345,7 @@ def detect_z234_direction_from_filename(input_file):
             return p
 
     raise ValueError(
-        "无法Determine direction from filename，请确保文件名包含：\n"
+        "Unable to determine direction from filename; ensure it contains:\n"
         "z2_fwd / z2_bwd / z3_fwd / z3_bwd / z4_fwd / z4_bwd\n"
         f"Current file: {input_file}"
     )
@@ -526,14 +526,14 @@ def collect_z234_terrain_events(df):
 
     Event 1:
         First l_label == 3
-        从这里开始贴第 1 个标签，
-        一直到Second l_label == 3 之前。
+        Assign the first label starting here,
+        up to just before the second l_label == 3.
 
     Event 2:
         Second l_label == 3
 
     Event 3:
-        Second l_label == 3 之后，
+        After the second l_label == 3,
         First r_label == 3
 
     Event 4 and later:
@@ -666,7 +666,7 @@ def get_z234_sequences(direction):
 
 def check_event_label_count_match(events, sequence, sequence_name):
     """
-    严格Check that event and label counts agree.
+    Strictly check that event and label counts agree.
 
     Return False when counts differ.
     """
@@ -679,17 +679,17 @@ def check_event_label_count_match(events, sequence, sequence_name):
     print(f"Label count: {label_count}")
 
     if event_count == label_count:
-        print("[Validation passed] event count和label count一致。")
+        print("[Validation passed] event count and label count match.")
         print("=" * 80)
         return True
 
     print("[Validation failed] Event count and label count differ。")
-    print("将跳过当前文件，do not generate an output file。")
+    print("Skip this file without generating an output.")
 
     if event_count > label_count:
-        print(f"event count比label count多 {event_count - label_count} 个。")
+        print(f"Event count exceeds label count by {event_count - label_count}.")
     else:
-        print(f"label count比event count多 {label_count - event_count} 个。")
+        print(f"Label count exceeds event count by {label_count - event_count}.")
 
     print("=" * 80)
 
@@ -737,7 +737,7 @@ def apply_terrain_sequence(
     if len(events) != len(terrain_sequence):
         msg = (
             f"{output_col}: Event count {len(events)} "
-            f"和terrain-sequence length {len(terrain_sequence)} do not match."
+            f"and terrain-sequence length {len(terrain_sequence)} do not match."
         )
 
         if not keep_last:
@@ -784,8 +784,8 @@ def force_zero_from_last_left_label3(df, output_col):
     Force the specified terrain-label column to 0.
 
     Logic:
-        最后一个 l_label == 3 之前，仍然正常贴前一个标签；
-        从最后一个 l_label == 3 开始，terrain = 0。
+        Before the final l_label == 3, keep assigning the preceding label;
+        From the final l_label == 3 onward, set terrain = 0.
     """
     if "l_label" not in df.columns:
         raise KeyError("Missing column: l_label")
@@ -801,7 +801,7 @@ def force_zero_from_last_left_label3(df, output_col):
     )
 
     if len(l3_events) == 0:
-        print(f"[Warning] 未找到 l_label == 3 起始事件，无法对 {output_col} 执行最后归 0")
+        print(f"[Warning] No l_label == 3 start event found; cannot apply final reset to {output_col}")
         return df
 
     last_left_idx = int(l3_events[-1]["idx"])
@@ -867,11 +867,11 @@ def print_event_mapping(events, sequence, title):
     print(f"Label count: {len(sequence)}")
 
     if len(events) == len(sequence):
-        print("[检查] event count与label count一致。")
+        print("[Check] event count and label count match.")
     elif len(events) < len(sequence):
-        print(f"[Info] label count比event count多 {len(sequence) - len(events)} 个。")
+        print(f"[Info] Label count exceeds event count by {len(sequence) - len(events)}.")
     else:
-        print(f"[Info] event count比label count多 {len(events) - len(sequence)} 个。")
+        print(f"[Info] Event count exceeds label count by {len(events) - len(sequence)}.")
 
     print("=" * 130)
 
@@ -992,9 +992,9 @@ def process_one_file(input_file):
 
     single_sequence, same_sequence = get_z234_sequences(direction)
 
-    print(f"[Event detection] {direction} 共检测到地形切换事件: {len(events)} 个")
-    print(f"[Label counts] 单侧Label count: {len(single_sequence)}")
-    print(f"[Label counts] 同侧Label count: {len(same_sequence)}")
+    print(f"[Event detection] {direction} terrain transition events detected: {len(events)} 个")
+    print(f"[Label counts] single-side labels: {len(single_sequence)}")
+    print(f"[Label counts] same-side labels: {len(same_sequence)}")
 
     # ========================================================
     # Strict check: label count must match event count
@@ -1015,7 +1015,7 @@ def process_one_file(input_file):
 
     if not single_ok or not same_ok:
         print("=" * 80)
-        print(f"[Skipped] {direction} label count和event count对不上，do not generate an output file。")
+        print(f"[Skipped] {direction} label count and event count differ; no output generated.")
         print(f"Input file: {input_file}")
         print("=" * 80)
         return None
@@ -1096,7 +1096,7 @@ def process_one_file(input_file):
 
 def main():
     print("=" * 100)
-    print("[Z2/Z3/Z4 方向terrain label batch processing started]")
+    print("[Z2/Z3/Z4 terrain batch labeling started]")
     print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
