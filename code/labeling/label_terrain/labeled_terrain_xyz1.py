@@ -154,7 +154,7 @@ def detect_xyz1_direction_from_filename(input_file):
 
     raise ValueError(
         "无法从文件名判断方向，请确保文件名包含 xyz1_fwd 或 xyz1_bwd。\n"
-        f"当前File: {input_file}"
+        f"Current file: {input_file}"
     )
 
 
@@ -321,7 +321,7 @@ def collect_xyz1_terrain_events(df):
         Second l_label == 3
 
     Event 3:
-        Second l_label == 3 后第一个 r_label == 3
+        First r_label == 3 following the second l_label == 3
 
     Event 4 and later:
         After the third event,
@@ -682,7 +682,7 @@ def process_one_file(input_file):
     if not ok:
         print("=" * 80)
         print(f"[Skipped] {direction} 标签数量和事件数量对不上，不生成新文件。")
-        print(f"输入File: {input_file}")
+        print(f"Input file: {input_file}")
         print("=" * 80)
         return None
 
@@ -691,7 +691,7 @@ def process_one_file(input_file):
             print_event_mapping(
                 events=events,
                 sequence=seq,
-                title=f"[{direction} {col} 标签映射]",
+                title=f"[{direction} {col} label mapping]",
             )
 
     for col, seq in sequences.items():
@@ -722,7 +722,7 @@ def process_one_file(input_file):
     print("=" * 80)
     print("[Completed]")
     print(f"Direction: {direction}")
-    print(f"输入File: {input_file}")
+    print(f"Input file: {input_file}")
     print(f"输出File: {actual_output_file}")
     print("New columns:")
     print("  terrain_x_single_label")
