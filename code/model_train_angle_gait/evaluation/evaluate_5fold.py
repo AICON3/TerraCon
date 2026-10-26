@@ -2268,7 +2268,7 @@ def evaluate_one_fold(
 
         raise StateDictMismatch(
 
-            f"{model_name}/{fold} state_dict 与当前模型代码不匹配: "
+            f"{model_name}/{fold} state_dict is incompatible with current model code: "
 
             + describe_mismatch(
 
@@ -2522,7 +2522,7 @@ def run_preflight(
 
                 row["detail"] = (
 
-                    "权重缺失, 已尝试: "
+                    "Missing checkpoint; tried: "
 
                     + "; ".join(
 
@@ -2781,7 +2781,7 @@ def run_preflight(
 
     print(
 
-        f"Ready to evaluate: {len(ready)} 组"
+        f"Ready to evaluate: {len(ready)} combinations"
 
     )
 
@@ -2797,7 +2797,7 @@ def run_preflight(
 
     print(
 
-        f"Cannot evaluate: {len(blocked)} 组"
+        f"Cannot evaluate: {len(blocked)} combinations"
 
     )
 
@@ -3507,7 +3507,7 @@ def main():
                 continue
 
             ####################################################
-            # 权重
+            # Checkpoints
             ####################################################
 
             checkpoint_path, ckpt_name, tried = resolve_checkpoint(
