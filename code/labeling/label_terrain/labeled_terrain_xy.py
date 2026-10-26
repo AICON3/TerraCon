@@ -319,7 +319,7 @@ def detect_xy_direction_from_filename(input_file):
 
     raise ValueError(
         "无法从文件名判断方向，请确保文件名包含 xy1_fwd ~ xy6_bwd。\n"
-        f"当前File: {input_file}"
+        f"Current file: {input_file}"
     )
 
 
@@ -462,7 +462,7 @@ def collect_xy_terrain_events(df):
         First r_label == 3 after the second l_label == 3
 
     Event 4 and later:
-        After the third event,l_label == 3 或 r_label == 3
+        After the third event: l_label == 3 or r_label == 3
 
     Finally:
         最后一个 r_label == 3 开始强制归 0。
@@ -603,7 +603,7 @@ def print_count_summary(direction, sequences, events, l3_events, r3_events):
     print(f"[数量结果] {direction}")
 
     print(
-        f"原始标签数量/你给的Label count: "
+        f"Original / provided label count: "
         f"x_single={seq_lens['terrain_x_single_label']}, "
         f"y_single={seq_lens['terrain_y_single_label']}, "
         f"x_same={seq_lens['terrain_x_same_label']}, "
@@ -611,14 +611,14 @@ def print_count_summary(direction, sequences, events, l3_events, r3_events):
     )
 
     print(
-        f"事件标签数量/实际检测到的贴标Event count: "
+        f"Detected labeling-event count: "
         f"{len(events)}"
     )
 
     print(
-        f"原始 label==3 起始Event count: "
-        f"l_label==3事件={len(l3_events)}, "
-        f"r_label==3事件={len(r3_events)}"
+        f"Original label == 3 start-event count: "
+        f"l_label==3 events={len(l3_events)}, "
+        f"r_label==3 events={len(r3_events)}"
     )
 
     if check_event_label_count_match(events, sequences):
@@ -782,8 +782,8 @@ def process_one_file(input_file):
 
         raise RuntimeError(
             f"{direction} 事件数量和你给的标签数量不一致。\n"
-            f"事件Label count: {len(events)}\n"
-            f"原始标签数量/你给的Label count: {seq_lens}"
+            f"Event count: {len(events)}\n"
+            f"Original / provided label count: {seq_lens}"
         )
 
     # Optionally print event mappings
@@ -792,7 +792,7 @@ def process_one_file(input_file):
             print_event_mapping(
                 events=events,
                 sequence=seq,
-                title=f"[{direction} {col} 标签映射]",
+                title=f"[{direction} {col} label mapping]",
             )
 
     # Assign labels
@@ -839,8 +839,8 @@ def process_one_file(input_file):
 def main():
     print("=" * 100)
     print("[XY1~XY6 地形标签批处理开始]")
-    print(f"被试: {SUBJECT_ID}")
-    print(f"输入文件夹: {INPUT_DIR}")
+    print(f"Subject: {SUBJECT_ID}")
+    print(f"Input directory: {INPUT_DIR}")
     print(f"Files to process: {len(INPUT_FILES)}")
     print("=" * 100)
 
@@ -870,7 +870,7 @@ def main():
             print(
                 f"[Completed] {result['direction']} | "
                 f"Rows: {result['row_count']} | "
-                f"事件Label count: {result['event_count']} | "
+                f"Event count: {result['event_count']} | "
                 f"Output: {result['output_file']}"
             )
 
@@ -910,7 +910,7 @@ def main():
                 f"y_single={seq_lens['terrain_y_single_label']}, "
                 f"x_same={seq_lens['terrain_x_same_label']}, "
                 f"y_same={seq_lens['terrain_y_same_label']} | "
-                f"事件标签数量={r['event_count']} | "
+                f"Labeled event count={r['event_count']} | "
                 f"输出={r['output_file']}"
             )
 
