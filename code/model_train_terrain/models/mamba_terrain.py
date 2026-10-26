@@ -5,7 +5,7 @@ try:
     from mamba_ssm import Mamba
 except ImportError:
     raise ImportError(
-        "请先安装 mamba-ssm 库: pip install causal-conv1d mamba-ssm"
+        "Please install mamba-ssm: pip install causal-conv1d mamba-ssm"
     )
 
 # =====================================================
@@ -20,7 +20,7 @@ except ImportError:
 
 
 class MambaBlock(nn.Module):
-    """带残差连接和 Pre-LayerNorm 的标准 Mamba 模块"""
+    """Standard Mamba block with residual connections and Pre-LayerNorm"""
 
     def __init__(self, d_model, d_state=16, d_conv=4, expand=2):
         super().__init__()
@@ -91,10 +91,10 @@ class MambaTerrainRegression(nn.Module):
                 nn.init.zeros_(m.bias)
 
     def forward(self, x):
-        """输入:
+        """Input:
 
-            x: [B, 200, 42] (IMU 序列)
-        输出:
+            x: [B, 200, 42] (IMU sequence)
+        Output:
             dict: {"terrain": [B, 30, 6]}
         """
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
@@ -140,6 +140,6 @@ if __name__ == "__main__":
     dummy_imu = torch.randn(8, 200, 42).to(device)
     out = model(dummy_imu)
 
-    print("Mamba 模型测试通过:")
+    print("Mamba model test passed:")
     print("terrain shape:", out["terrain"].shape)  # torch.Size([8, 30, 6])
-    assert out["terrain"].shape == (8, 30, 6), "输出维度与训练任务不一致！"
+    assert out["terrain"].shape == (8, 30, 6), "Output shape does not match the training task!"
