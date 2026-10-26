@@ -39,11 +39,11 @@ import pandas as pd
 
 
 DEFAULT_SOURCE_ROOT = Path(
-    "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/label_3"
+    "/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/label_3"
 )
 
 DEFAULT_OUTPUT_ROOT = Path(
-    "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/processed"
+    "/mnt/newdisk/Trigait/Trigait\u6570\u636e\u5e93_7.20\u76ee\u5f55\u793a\u8303_20260721/processed"
 )
 
 
