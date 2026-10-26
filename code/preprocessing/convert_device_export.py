@@ -43,7 +43,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 
 
 # =========================
-# 路径配置
+# Path configuration
 # =========================
 INPUT_ROOT = "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/device_export"
 OUTPUT_ROOT = "/mnt/newdisk/Trigait/Trigait数据库_7.20目录示范_20260721/original_picture"
@@ -53,14 +53,14 @@ SUBJECT_END = 11
 TARGET_DIR_NAMES = ["G", "L1", "L2", "L3", "R1", "R2", "R3"]
 
 # =========================
-# 二进制格式配置
+# Binary format configuration
 # =========================
 RECORD_SIZE = 28
 SYNC_HEADER = bytes([0x55, 0x61])
 
-# Excel 单工作表最大行数 1,048,576；预留 1 行表头
+# Excel worksheets have a limit of 1,048,576 rows; reserve one for the header
 MAX_DATA_ROWS_PER_SHEET = 1_048_575
-# Excel 单元格文本上限约 32767 字符；raw_hex 每字节约占 3 字符，因此异常字节分块保存
+# Excel text cells are limited to about 32,767 characters; chunk raw_hex data at ~3 characters per byte
 MAX_UNPARSED_BYTES_PER_ROW = 8000
 
 DATA_COLUMNS = [
@@ -248,7 +248,7 @@ def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
     while pos < total:
         remain = total - pos
 
-        # 足够 28 字节并且当前位置就是同步头 -> 读取完整帧
+        # If 28 bytes remain and the current position is a sync header, read a complete frame
         if remain >= RECORD_SIZE and raw[pos:pos + 2] == SYNC_HEADER:
             pending_list = flush_unparsed(pos, "同步头之间的异常/错位原始字节")
             for pending in pending_list:
@@ -261,14 +261,14 @@ def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
             pos += RECORD_SIZE
             continue
 
-        # 剩余不足一帧：全部原样保留
+        # If fewer than one frame remains, preserve all remaining bytes
         if remain < RECORD_SIZE:
             if unparsed_start is None:
                 unparsed_start = pos
             pos = total
             break
 
-        # 当前不是同步头：先记住起点，逐字节寻找下一个同步头
+        # If not at a sync header, remember the offset and scan byte by byte for the next sync header
         if unparsed_start is None:
             unparsed_start = pos
         pos += 1
@@ -448,7 +448,7 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
 
     print(f"  [{sensor_name}] 找到 {len(wit_files)} 个 WIT 文件")
 
-    # 先逐个文件转换
+    # Convert each source file first
     for fn in wit_files:
         src = os.path.join(input_dir, fn)
         wit_stem = os.path.splitext(fn)[0]
@@ -463,7 +463,7 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
             f"源文件={stats['file_bytes']} 字节"
         )
 
-    # 再做目录级拼接
+    # Then concatenate at the directory level
     merge_name = f"{sub_name}_{sensor_name}_拼接.xlsx"
     merge_path = os.path.join(output_dir, merge_name)
     merge_writer = ExcelStreamWriter(merge_path)
@@ -543,7 +543,7 @@ def main(input_root: str = INPUT_ROOT, output_root: str = OUTPUT_ROOT) -> None:
 
 
 if __name__ == "__main__":
-    # 可选命令行参数：
+    # Optional CLI arguments:
     # python convert_device_export_no_trim.py [input_root] [output_root]
     in_root = sys.argv[1] if len(sys.argv) >= 2 else INPUT_ROOT
     out_root = sys.argv[2] if len(sys.argv) >= 3 else OUTPUT_ROOT
