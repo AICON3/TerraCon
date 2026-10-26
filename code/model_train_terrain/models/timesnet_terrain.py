@@ -21,14 +21,14 @@ def FFT_for_Period(x, k=5):
     frequency = torch.abs(xf).mean(dim=0).mean(dim=-1)
     frequency[0] = 0.0  # 压制直流分量
 
-    # 保证 k 不超过频域采样点总数
+    # Ensure k does not exceed the number of frequency bins
     k = min(k, frequency.size(0) - 1)
     _, top_list = torch.topk(frequency, k)
     top_list = top_list.detach().cpu().numpy()
 
     period = []
     for top in top_list:
-        # 防御除零风险
+        # Guard against division by zero
         top = max(int(top), 1)
         p = max(x.shape[1] // top, 1)
         period.append(p)
@@ -85,17 +85,17 @@ class TimesBlock(nn.Module):
             else:
                 out = x
 
-            # 变换到 2D 周期空间: [B, 2D_T, 2D_P, C] -> [B, C, 2D_T, 2D_P]
+            # Transform to 2D periodic space: [B, 2D_T, 2D_P, C] -> [B, C, 2D_T, 2D_P]
             out = out.reshape(B, length // period, period, C).permute(
                 0, 3, 1, 2
             )
             out = self.conv(out)
-            # 还原为 1D 时序: [B, C, 2D_T, 2D_P] -> [B, length, C]
+            # Restore 1D sequence: [B, C, 2D_T, 2D_P] -> [B, length, C]
             out = out.permute(0, 2, 3, 1).reshape(B, length, C)
             out = out[:, :T, :]
             res.append(out)
 
-        # 多周期加权融合
+        # Weighted fusion over periods
         res = torch.stack(res, dim=-1).mean(dim=-1)
         return res + x
 
@@ -119,11 +119,11 @@ class TimesNetTerrainRegression(nn.Module):
         self.pred_len = pred_len
         self.terrain_dim = terrain_dim
 
-        # 1. 局部特征嵌入
+        # 1. Local feature embedding
         self.embedding = nn.Linear(input_dim, d_model)
         self.dropout = nn.Dropout(dropout)
 
-        # 2. TimesBlock 堆叠
+        # 2. Stacked TimesBlocks
         self.blocks = nn.ModuleList([
             TimesBlock(
                 seq_len=input_len,
@@ -136,10 +136,10 @@ class TimesNetTerrainRegression(nn.Module):
 
         self.norm = nn.LayerNorm(d_model)
 
-        # 3. 时序长度投影: 将完整的 200 帧聚合映射到目标 pred_len (30)
+        # 3. Map all 200 input frames to the target pred_len (30)
         self.predict_linear = nn.Linear(input_len, pred_len)
 
-        # 4. 地形回归头 (纯净 6 维输出)
+        # 4. Terrain regression head (six outputs)
         self.terrain_head = nn.Sequential(
             nn.Linear(d_model, 128),
             nn.GELU(),
@@ -158,28 +158,28 @@ class TimesNetTerrainRegression(nn.Module):
         if x.ndim != 3:
             raise ValueError(f"Input must be [B, T, F], but got {x.shape}")
 
-        # A. 线性嵌入
+        # A. Linear embedding
         h = self.embedding(x)
         h = self.dropout(h)
 
-        # B. 周期性 2D 卷积转换
+        # B. Periodic 2D convolution transformation
         for block in self.blocks:
             h = block(h)
 
         h = self.norm(h)  # [B, 200, d_model]
 
-        # C. 跨时序投影到预测步长 (保持全局历史信息完整性)
+        # C. Project across time while preserving the full historical context
         # [B, 200, d_model] -> [B, d_model, 200] -> [B, d_model, 30] -> [B, 30, d_model]
         h = self.predict_linear(h.transpose(1, 2)).transpose(1, 2)
 
-        # D. 回归地形参数 [B, 30, 6]
+        # D. Regress terrain parameters [B, 30, 6]
         terrain = self.terrain_head(h)
 
         return {"terrain": terrain}
 
 
 if __name__ == "__main__":
-    # 与 build_model("timesnet", cfg) 参数完全兼容
+    # Arguments are compatible with build_model("timesnet", cfg)
     model = TimesNetTerrainRegression(
         input_len=200,
         pred_len=30,
