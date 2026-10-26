@@ -23,7 +23,7 @@ def series_decomp(x, kernel_size=25):
     k = max(k, 1)
 
     if k == 1:
-        # 序列过短，退回不做分解
+        # Skip decomposition when the sequence is too short
         return x, torch.zeros_like(x)
 
     padding = (k - 1) // 2
@@ -52,7 +52,7 @@ class TimeMixing(nn.Module):
     def __init__(self, d_model, kernel_size=3, dropout=0.1):
         super().__init__()
         self.norm = nn.LayerNorm(d_model)
-        # 时间轴耦合: depthwise conv，每个通道独立在时间维卷积
+        # Temporal coupling: depthwise convolution applies independently to each channel
         self.time_conv = nn.Conv1d(
             d_model,
             d_model,
@@ -60,7 +60,7 @@ class TimeMixing(nn.Module):
             padding=kernel_size // 2,
             groups=d_model,
         )
-        # 特征维通道混合
+        # Channel mixing over feature dimensions
         self.channel_mix = nn.Sequential(
             nn.Linear(d_model, d_model * 2),
             nn.GELU(),
@@ -107,7 +107,7 @@ class PastDecomposableMixing(nn.Module):
     def forward(self, x_list):
         num_scales = len(x_list)
 
-        # 1) 各尺度分别做序列分解
+        # 1) Decompose each scale separately
         seasonal_list = []
         trend_list = []
         for x in x_list:
@@ -115,7 +115,7 @@ class PastDecomposableMixing(nn.Module):
             seasonal_list.append(seasonal)
             trend_list.append(trend)
 
-        # 2) Bottom-up: 细粒度 trend 下采样后汇入粗粒度 trend
+        # 2) Bottom-up: downsample fine-scale trends and merge into coarse-scale trends
         for i in range(num_scales - 1):
             down = F.avg_pool1d(
                 trend_list[i].transpose(1, 2),
@@ -133,7 +133,7 @@ class PastDecomposableMixing(nn.Module):
 
             trend_list[i + 1] = trend_list[i + 1] + down
 
-        # 3) Top-down: 粗粒度 seasonal 上采样后汇入细粒度 seasonal
+        # 3) Top-down: upsample coarse-scale seasonality and merge into fine-scale seasonality
         for i in range(num_scales - 1, 0, -1):
             up = F.interpolate(
                 seasonal_list[i].transpose(1, 2),
@@ -144,7 +144,7 @@ class PastDecomposableMixing(nn.Module):
 
             seasonal_list[i - 1] = seasonal_list[i - 1] + up
 
-        # 4) 各尺度的 seasonal / trend 分别做时间轴 mixing
+        # 4) Apply temporal mixing to seasonal and trend components at each scale
         out = []
         for seasonal, trend in zip(seasonal_list, trend_list):
             out.append(
@@ -193,12 +193,12 @@ class TimeMixerMultiTask(nn.Module):
         self.down_sampling_window = down_sampling_window
         self.moving_avg = moving_avg
 
-        # 1. 各尺度的输入线性投影 (input_dim -> d_model)
+        # 1. Input projection at each scale (input_dim -> d_model)
         self.encoders = nn.ModuleList([
             nn.Linear(input_dim, d_model) for _ in range(num_scales)
         ])
 
-        # 2. Past Decomposable Mixing 块 (跨所有尺度联合处理)
+        # 2. Past Decomposable Mixing blocks across all scales
         self.pdm_blocks = nn.ModuleList([
             PastDecomposableMixing(
                 d_model=d_model,
@@ -209,7 +209,7 @@ class TimeMixerMultiTask(nn.Module):
             for _ in range(num_pdm_layers)
         ])
 
-        # 3. 多尺度特征融合层 (拼接多个尺度的池化特征)
+        # 3. Multiscale fusion by concatenating pooled features
         total_dim = d_model * num_scales
         self.fusion = nn.Sequential(
             nn.Linear(total_dim, total_dim),
@@ -218,7 +218,7 @@ class TimeMixerMultiTask(nn.Module):
             nn.Dropout(dropout),
         )
 
-        # 4. 角度回归输出头 [B, total_dim] -> [B, pred_len, angle_dim]
+        # 4. Angle regression head [B, total_dim] -> [B, pred_len, angle_dim]
         self.angle_head = nn.Sequential(
             nn.Linear(total_dim, 128),
             nn.GELU(),
@@ -226,7 +226,7 @@ class TimeMixerMultiTask(nn.Module):
             nn.Linear(128, pred_len * angle_dim),
         )
 
-        # 5. 步态分类输出头 [B, total_dim] -> [B, pred_len, gait_dim]
+        # 5. Gait classification head [B, total_dim] -> [B, pred_len, gait_dim]
         self.gait_head = nn.Sequential(
             nn.Linear(total_dim, 128),
             nn.GELU(),
@@ -253,12 +253,12 @@ class TimeMixerMultiTask(nn.Module):
         if x.ndim != 3:
             raise ValueError("Input must be [B, T, F]")
 
-        # 数据已在 dataset 中完成 nan_to_num 和 /100 归一化，
-        # 这里不再对 GPU 张量调用 torch.nan_to_num，避免部分
-        # PyTorch/CUDA 版本上的非法内存访问风险。
+        # The dataset has already applied nan_to_num and scaling by 1/100,
+        # so do not call torch.nan_to_num on GPU tensors to avoid
+        # illegal memory access with some PyTorch/CUDA versions.
         x = x.contiguous()
 
-        # 维度容错校验
+        # Dimension consistency check
         if x.size(-1) != self.input_dim:
             if x.size(1) == self.input_dim:
                 x = x.transpose(1, 2).contiguous()
@@ -269,14 +269,14 @@ class TimeMixerMultiTask(nn.Module):
 
         B = x.size(0)
 
-        # 多尺度降采样 + 投影，得到各尺度特征 [B, T_level, d_model]
+        # Multiscale downsampling and projection to [B, T_level, d_model]
         scale_features = []
         current = x
 
         for level in range(self.num_scales):
             scale_features.append(self.encoders[level](current))
 
-            # 下采样生成粗粒度时序:
+            # Downsample to a coarser temporal sequence:
             # [B, T, F] -> [B, F, T] -> avg_pool -> [B, T_new, F]
             if level < self.num_scales - 1:
                 current = F.avg_pool1d(
@@ -286,18 +286,18 @@ class TimeMixerMultiTask(nn.Module):
                 ).transpose(1, 2)
 
         # Past Decomposable Mixing:
-        # 各尺度序列分解 -> Bottom-up/Top-down 跨尺度混合 -> 时间轴 mixing
+        # Decompose each scale -> Bottom-up/Top-down mixing -> temporal mixing
         for pdm in self.pdm_blocks:
             scale_features = pdm(scale_features)
 
-        # 各尺度全局时序池化后拼接
+        # Globally pool and concatenate temporal features across scales
         pooled = [h.mean(dim=1) for h in scale_features]
 
-        # 跨尺度特征融合 [B, d_model * num_scales]
+        # Cross-scale fusion [B, d_model * num_scales]
         multi_scale_feature = torch.cat(pooled, dim=-1)
         feature = self.fusion(multi_scale_feature)
 
-        # 多任务输出并重塑为 [B, pred_len, dim]
+        # Multitask outputs reshaped to [B, pred_len, dim]
         angle = self.angle_head(feature)
         angle = angle.view(B, self.pred_len, self.angle_dim)
 
