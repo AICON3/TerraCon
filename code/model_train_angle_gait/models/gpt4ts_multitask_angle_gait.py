@@ -5,9 +5,9 @@ from transformers import GPT2Config, GPT2Model
 
 
 class RevIN(nn.Module):
-    """可逆实例归一化 (Reversible Instance Normalization)
+    """Reversible Instance Normalization
 
-    消除跨个体、不同步速及 IMU 传感器温漂/偏置带来的分布偏移。
+    Mitigates distribution shifts across subjects, walking speeds, and IMU drift or bias.
     """
 
     def __init__(self, num_features: int, eps=1e-5, affine=True):
@@ -38,15 +38,15 @@ class RevIN(nn.Module):
 
 
 class GPT4TSMultiTask(nn.Module):
-    """GPT4TS 多任务模型 (角度回归 + 步态分类)
+    """GPT4TS multitask model (angle regression and gait classification)
 
-    结构:
+    Architecture:
         RevIN -> Patch Embedding -> GPT-2 Backbone -> Temporal Projector
         -> {angle_head, gait_head}
 
-    输入:
-        x: [B, input_len, input_dim]   (默认 [B, 200, 42])
-    输出:
+    Input:
+        x: [B, input_len, input_dim]   (default [B, 200, 42])
+    Output:
         {"angle": [B, pred_len, angle_dim],
          "gait":  [B, pred_len, gait_dim]}
     """
@@ -75,7 +75,7 @@ class GPT4TSMultiTask(nn.Module):
         # 1. Compute fixed patch count: (200 - 16) // 8 + 1 = 24
         self.patch_num = (seq_len - patch_len) // stride + 1
         if self.patch_num <= 0:
-            raise ValueError("patch_len / stride 不合法，无法切出任何 patch")
+            raise ValueError("Invalid patch_len / stride; no patches can be extracted")
 
         # 2. IMU multichannel instance normalization
         self.revin = RevIN(num_features=input_dim, affine=True)
@@ -112,9 +112,9 @@ class GPT4TSMultiTask(nn.Module):
         # so check them early.
         if d_model != self.gpt2.config.n_embd:
             raise ValueError(
-                f"d_model ({d_model}) 必须等于 GPT-2 的 n_embd "
+                f"d_model ({d_model}) must equal GPT-2 n_embd "
                 f"({self.gpt2.config.n_embd})，"
-                f"否则 patch embedding 输出维度与主干不匹配"
+                f"otherwise the patch embedding output dimension differs from the backbone"
             )
 
         # 5. Fine-tune only LayerNorm and positional embeddings
@@ -148,9 +148,9 @@ class GPT4TSMultiTask(nn.Module):
         )
 
     def forward(self, x, **kwargs):
-        """输入:
+        """Input:
             x: [B, input_len, input_dim]
-        输出:
+        Output:
             {"angle": [B, pred_len, angle_dim],
              "gait":  [B, pred_len, gait_dim]}
         """
@@ -161,7 +161,7 @@ class GPT4TSMultiTask(nn.Module):
 
         if T != self.seq_len:
             raise ValueError(
-                f"输入序列长度 {T} 与模型设定 seq_len {self.seq_len} 不一致"
+                f"Input length {T} differs from configured seq_len {self.seq_len}"
             )
 
         # The dataset has already applied nan_to_num and scaling by 1/100,
@@ -211,4 +211,4 @@ if __name__ == "__main__":
     print("gait:", output["gait"].shape)
     assert output["angle"].shape == (2, 30, 8)
     assert output["gait"].shape == (2, 30, 2)
-    print("GPT4TS 验证通过")
+    print("GPT4TS validation passed")
