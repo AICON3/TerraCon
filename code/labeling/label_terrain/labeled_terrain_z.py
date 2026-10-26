@@ -265,15 +265,15 @@ def read_excel_auto_sheet(input_file):
     Prefer the data/Data/DATA worksheet.
     Otherwise read the first worksheet.
 
-    如果文件不是有效 xlsx，会给出明确提示。
+    Provide a clear error if the file is not a valid XLSX workbook.
     """
     try:
         xls = pd.ExcelFile(input_file)
 
     except zipfile.BadZipFile:
         raise RuntimeError(
-            "当前文件不是有效的 .xlsx 文件，可能文件损坏，"
-            "或者只是被改名成 .xlsx。\n"
+            "The file is not a valid .xlsx workbook; it may be corrupted"
+            "or merely renamed with an .xlsx extension.\n"
             f"File: {input_file}\n"
             "Open the file in Excel/WPS and save it as a valid Excel workbook (*.xlsx)."
         )
@@ -289,7 +289,7 @@ def read_excel_auto_sheet(input_file):
     print("=" * 80)
     print("[Excel worksheet inspection]")
     print(f"File: {input_file}")
-    print(f"工作表: {xls.sheet_names}")
+    print(f"Worksheet: {xls.sheet_names}")
 
     preferred_sheets = ["data", "Data", "DATA"]
 
@@ -302,13 +302,13 @@ def read_excel_auto_sheet(input_file):
 
     if sheet_name is None:
         sheet_name = xls.sheet_names[0]
-        print(f"[提示] 未找到 data/Data/DATA，自动读取第一个工作表: {sheet_name}")
+        print(f"[Info] 未找到 data/Data/DATA，自动读取第一个Worksheet: {sheet_name}")
     else:
-        print(f"[提示] 使用工作表: {sheet_name}")
+        print(f"[Info] 使用Worksheet: {sheet_name}")
 
     df = pd.read_excel(input_file, sheet_name=sheet_name)
 
-    print(f"[Read OK] 数据维度: {df.shape[0]} 行 × {df.shape[1]} 列")
+    print(f"[Read OK] Data shape: {df.shape[0]} rows × {df.shape[1]} columns")
 
     if "time_s" in df.columns:
         print(f"[Time range] {df['time_s'].iloc[0]} s -> {df['time_s'].iloc[-1]} s")
@@ -324,7 +324,7 @@ def read_excel_auto_sheet(input_file):
 
 def detect_z234_direction_from_filename(input_file):
     """
-    从文件名判断：
+    Determine from the filename:
         z2_fwd / z2_bwd
         z3_fwd / z3_bwd
         z4_fwd / z4_bwd
@@ -374,7 +374,7 @@ def extract_subject_id(input_file):
 
 def build_output_file(input_file):
     """
-    生成输出文件夹和输出文件路径。
+    Generate output directory and output filename.
 
     Output directory:
         sub_xxx_labeled_terrain
@@ -436,9 +436,9 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
     except PermissionError:
         print("=" * 80)
-        print("[警告] 输出文件无法写入，可能正在被 Excel/WPS 打开：")
+        print("[Warning] Cannot write the output file; it may be open in Excel/WPS:")
         print(output_file)
-        print("[处理] 自动尝试另存为新文件名。")
+        print("[Processing] Trying another output filename.")
 
         folder = os.path.dirname(output_file)
         base = os.path.splitext(os.path.basename(output_file))[0]
@@ -473,12 +473,12 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
     """
     Detect the first sample of a label_value run in label_col.
 
-    rising edge 条件：
-        当前行 label == label_value
-        且上一行 label != label_value
+    Rising-edge condition:
+        Current row label == label_value
+        and previous row label != label_value
     """
     if label_col not in df.columns:
-        raise KeyError(f"缺少列: {label_col}")
+        raise KeyError(f"Missing column: {label_col}")
 
     label = df[label_col].to_numpy()
 
@@ -544,10 +544,10 @@ def collect_z234_terrain_events(df):
         最后一个 l_label == 3 作为归 0 起点。
     """
     if "l_label" not in df.columns:
-        raise KeyError("缺少列: l_label")
+        raise KeyError("Missing column: l_label")
 
     if "r_label" not in df.columns:
-        raise KeyError("缺少列: r_label")
+        raise KeyError("Missing column: r_label")
 
     events = []
 
@@ -637,7 +637,7 @@ def collect_z234_terrain_events(df):
 
 def get_z234_sequences(direction):
     """
-    根据方向返回单侧和同侧地形标签序列。
+    Return single-side and same-side terrain sequences for the direction.
     """
     if direction == "z2_fwd":
         return Z2_FWD_SINGLE_TERRAIN_SEQUENCE, Z2_FWD_SAME_TERRAIN_SEQUENCE
@@ -657,7 +657,7 @@ def get_z234_sequences(direction):
     if direction == "z4_bwd":
         return Z4_BWD_SINGLE_TERRAIN_SEQUENCE, Z4_BWD_SAME_TERRAIN_SEQUENCE
 
-    raise ValueError(f"未知Direction: {direction}")
+    raise ValueError(f"Unknown direction: {direction}")
 
 
 # ============================================================
@@ -666,25 +666,25 @@ def get_z234_sequences(direction):
 
 def check_event_label_count_match(events, sequence, sequence_name):
     """
-    严格检查事件数量和标签数量是否一致。
+    严格Check that event and label counts agree.
 
-    如果不一致，返回 False。
+    Return False when counts differ.
     """
     event_count = len(events)
     label_count = len(sequence)
 
     print("=" * 80)
-    print(f"[数量检查] {sequence_name}")
+    print(f"[Count validation] {sequence_name}")
     print(f"Event count: {event_count}")
     print(f"Label count: {label_count}")
 
     if event_count == label_count:
-        print("[检查通过] 事件数量和标签数量一致。")
+        print("[Validation passed] 事件数量和标签数量一致。")
         print("=" * 80)
         return True
 
-    print("[检查失败] 事件数量和标签数量不一致。")
-    print("将跳过当前文件，不生成新文件。")
+    print("[Validation failed] Event count and label count differ。")
+    print("将跳过当前文件，do not generate an output file。")
 
     if event_count > label_count:
         print(f"事件数量比标签数量多 {event_count - label_count} 个。")
@@ -730,21 +730,21 @@ def apply_terrain_sequence(
     )
 
     if len(events) == 0:
-        print(f"[警告] 没有检测到事件，{output_col} 全部填 {initial_label}")
+        print(f"[Warning] 没有检测到事件，{output_col} 全部填 {initial_label}")
         df[output_col] = terrain.astype(int)
         return df
 
     if len(events) != len(terrain_sequence):
         msg = (
-            f"{output_col}: 事件数量 {len(events)} "
-            f"和地形序列长度 {len(terrain_sequence)} 不一致。"
+            f"{output_col}: Event count {len(events)} "
+            f"和terrain-sequence length {len(terrain_sequence)} do not match."
         )
 
         if not keep_last:
             raise ValueError(msg)
         else:
-            print(f"[警告] {msg}")
-            print("[处理] 超出部分将保持 terrain_sequence 最后一个标签。")
+            print(f"[Warning] {msg}")
+            print("[Processing] 超出部分将保持 terrain_sequence 最后一个标签。")
 
     first_idx = events[0]["idx"]
 
@@ -780,7 +780,7 @@ def apply_terrain_sequence(
 
 def force_zero_from_last_left_label3(df, output_col):
     """
-    从最后一个 l_label == 3 的起始事件开始，
+    Starting from the final l_label == 3 start event,
     Force the specified terrain-label column to 0.
 
     Logic:
@@ -788,10 +788,10 @@ def force_zero_from_last_left_label3(df, output_col):
         从最后一个 l_label == 3 开始，terrain = 0。
     """
     if "l_label" not in df.columns:
-        raise KeyError("缺少列: l_label")
+        raise KeyError("Missing column: l_label")
 
     if output_col not in df.columns:
-        raise KeyError(f"缺少列: {output_col}")
+        raise KeyError(f"Missing column: {output_col}")
 
     l3_events = detect_label_value_rising_edges(
         df=df,
@@ -801,7 +801,7 @@ def force_zero_from_last_left_label3(df, output_col):
     )
 
     if len(l3_events) == 0:
-        print(f"[警告] 未找到 l_label == 3 起始事件，无法对 {output_col} 执行最后归 0")
+        print(f"[Warning] 未找到 l_label == 3 起始事件，无法对 {output_col} 执行最后归 0")
         return df
 
     last_left_idx = int(l3_events[-1]["idx"])
@@ -869,9 +869,9 @@ def print_event_mapping(events, sequence, title):
     if len(events) == len(sequence):
         print("[检查] 事件数量与标签数量一致。")
     elif len(events) < len(sequence):
-        print(f"[提示] 标签数量比事件数量多 {len(sequence) - len(events)} 个。")
+        print(f"[Info] 标签数量比事件数量多 {len(sequence) - len(events)} 个。")
     else:
-        print(f"[提示] 事件数量比标签数量多 {len(events) - len(sequence)} 个。")
+        print(f"[Info] 事件数量比标签数量多 {len(events) - len(sequence)} 个。")
 
     print("=" * 130)
 
@@ -939,9 +939,9 @@ def check_left_right_alternation(events):
             )
 
     if not warnings:
-        print("[检查通过] 后续 L/R label==3 事件呈交替出现。")
+        print("[Validation passed] 后续 L/R label==3 事件呈交替出现。")
     else:
-        print(f"[警告] 发现 {len(warnings)} 处连续同侧事件：")
+        print(f"[Warning] 发现 {len(warnings)} 处连续同侧事件：")
 
         for i, prev_event, curr_event in warnings:
             print(
@@ -980,7 +980,7 @@ def process_one_file(input_file):
         raise KeyError(
             "Required columns are missing:\n"
             + "\n".join(missing)
-            + "\n\n请确认输入文件是已经贴好步态标签的表格。"
+            + "\n\n请确认The input file must already contain gait labels."
         )
 
     print_label_statistics(df)
@@ -988,13 +988,13 @@ def process_one_file(input_file):
     events = collect_z234_terrain_events(df)
 
     if len(events) == 0:
-        raise RuntimeError("没有检测到任何可用于贴地形标签的事件。")
+        raise RuntimeError("No events available for assigning terrain labels were detected.")
 
     single_sequence, same_sequence = get_z234_sequences(direction)
 
     print(f"[Event detection] {direction} 共检测到地形切换事件: {len(events)} 个")
-    print(f"[标签数量] 单侧Label count: {len(single_sequence)}")
-    print(f"[标签数量] 同侧Label count: {len(same_sequence)}")
+    print(f"[Label counts] 单侧Label count: {len(single_sequence)}")
+    print(f"[Label counts] 同侧Label count: {len(same_sequence)}")
 
     # ========================================================
     # Strict check: label count must match event count
@@ -1015,7 +1015,7 @@ def process_one_file(input_file):
 
     if not single_ok or not same_ok:
         print("=" * 80)
-        print(f"[跳过] {direction} 标签数量和事件数量对不上，不生成新文件。")
+        print(f"[Skipped] {direction} 标签数量和事件数量对不上，do not generate an output file。")
         print(f"输入File: {input_file}")
         print("=" * 80)
         return None
@@ -1078,7 +1078,7 @@ def process_one_file(input_file):
     )
 
     print("=" * 80)
-    print("[完成]")
+    print("[Completed]")
     print(f"Direction: {direction}")
     print(f"输入File: {input_file}")
     print(f"输出File: {actual_output_file}")
@@ -1105,7 +1105,7 @@ def main():
     for input_file in INPUT_FILES:
         if not os.path.exists(input_file):
             print("=" * 80)
-            print("[警告] 文件不存在，跳过：")
+            print("[Warning] File not found，跳过：")
             print(input_file)
             print("=" * 80)
             continue
@@ -1118,7 +1118,7 @@ def main():
 
         except Exception as e:
             print("=" * 80)
-            print("[错误] 当前文件处理失败，已跳过，不影响后续文件。")
+            print("[Error] Processing failed for this file; skipping，不影响后续文件。")
             print(f"File: {input_file}")
             print(f"Error type: {type(e).__name__}")
             print(f"Error message: {e}")
