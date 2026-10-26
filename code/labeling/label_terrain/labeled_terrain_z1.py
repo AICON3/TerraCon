@@ -11,10 +11,10 @@ import pandas as pd
 
 SUB_ID = "sub_042"
 
-# 数据根目录
+# Data root directory
 BASE_DIR = r"E:\data"
 
-# 当前被试文件夹
+# Current participant directory
 SUB_DIR = os.path.join(BASE_DIR, f"{SUB_ID}_label")
 
 INPUT_FILES = [
@@ -22,8 +22,8 @@ INPUT_FILES = [
     os.path.join(SUB_DIR, f"{SUB_ID}_z1_bwd_aligned_labeled.xlsx"),
 ]
 
-# 是否打印详细事件映射
-# False = 不打印事件过程，只打印数量结果和最终结果
+# Whether to print detailed event mappings
+# False: print only counts and final results, not the event detection trace
 PRINT_EVENTS = False
 
 # Force labels to 0 from the final r_label == 3 event onward
@@ -31,7 +31,7 @@ FORCE_ZERO_FROM_LAST_RIGHT_LABEL3 = True
 
 
 # ============================================================
-# 1. Z1_fwd 地形标签
+# 1. Terrain labels for Z1_fwd
 # ============================================================
 
 Z1_FWD_SINGLE_TERRAIN_SEQUENCE = [
@@ -120,7 +120,7 @@ Z1_FWD_SAME_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 2. Z1_bwd 地形标签
+# 2. Terrain labels for Z1_bwd
 # ============================================================
 
 Z1_BWD_SINGLE_TERRAIN_SEQUENCE = [
@@ -209,7 +209,7 @@ Z1_BWD_SAME_TERRAIN_SEQUENCE = [
 
 
 # ============================================================
-# 3. Excel 自动读取
+# 3. Automatic Excel loading
 # ============================================================
 
 def read_excel_auto_sheet(input_file):
@@ -251,7 +251,7 @@ def read_excel_auto_sheet(input_file):
 
 
 # ============================================================
-# 4. 判断 z1_fwd / z1_bwd
+# 4. Determine z1_fwd / z1_bwd
 # ============================================================
 
 def detect_z1_direction_from_filename(input_file):
@@ -289,7 +289,7 @@ def detect_z1_direction_from_filename(input_file):
 
 
 # ============================================================
-# 5. 自动生成输出路径
+# 5. Generate the output path
 # ============================================================
 
 def extract_subject_id(input_file):
@@ -346,7 +346,7 @@ def build_output_file(input_file):
 
 
 # ============================================================
-# 6. 安全保存 Excel
+# 6. Save the Excel workbook safely
 # ============================================================
 
 def save_excel_safely(df, output_file, sheet_name="data"):
@@ -396,7 +396,7 @@ def save_excel_safely(df, output_file, sheet_name="data"):
 
 
 # ============================================================
-# 7. 通用事件检测函数
+# 7. General event-detection functions
 # ============================================================
 
 def detect_label_value_rising_edges(df, label_col, label_value, side_name):
@@ -447,7 +447,7 @@ def detect_label_value_rising_edges(df, label_col, label_value, side_name):
 
 
 # ============================================================
-# 8. z1_fwd / z1_bwd 共用事件逻辑：和 Y 一样
+# 8. Shared event logic for z1_fwd / z1_bwd, following the Y rules
 # ============================================================
 
 def collect_z1_terrain_events_like_y(df):
@@ -556,7 +556,7 @@ def collect_z1_terrain_events_like_y(df):
 
 
 # ============================================================
-# 9. 根据 z1_fwd / z1_bwd 获取标签序列
+# 9. Get label sequences for z1_fwd / z1_bwd
 # ============================================================
 
 def get_z1_sequences(direction):
@@ -573,7 +573,7 @@ def get_z1_sequences(direction):
 
 
 # ============================================================
-# 10. 数量检查与数量结果打印
+# 10. Check counts and print results
 # ============================================================
 
 def check_event_label_count_match(events, sequence):
@@ -650,7 +650,7 @@ def print_count_summary(
 
 
 # ============================================================
-# 11. 根据事件序列贴地形标签
+# 11. Assign terrain labels from event sequences
 # ============================================================
 
 def apply_terrain_sequence(
@@ -720,7 +720,7 @@ def apply_terrain_sequence(
 
 
 # ============================================================
-# 12. 最后一个 r_label == 3 后强制归 0
+# 12. Force labels to 0 after the final r_label == 3 event
 # ============================================================
 
 def force_zero_from_last_right_label3(df, output_cols):
@@ -751,7 +751,7 @@ def force_zero_from_last_right_label3(df, output_cols):
 
 
 # ============================================================
-# 13. 可选：打印事件和标签对应关系
+# 13. Optional event-to-label mapping output
 # ============================================================
 
 def print_event_mapping(events, sequence, title):
@@ -795,7 +795,7 @@ def print_event_mapping(events, sequence, title):
 
 
 # ============================================================
-# 14. 处理单个文件
+# 14. Process a single file
 # ============================================================
 
 def process_one_file(input_file):
@@ -824,7 +824,7 @@ def process_one_file(input_file):
 
     single_sequence, same_sequence = get_z1_sequences(direction)
 
-    # 打印数量结果：原始标签数量 + 事件标签数量
+    # Print counts of original labels and event labels
     print_count_summary(
         direction=direction,
         events=events,
@@ -834,7 +834,7 @@ def process_one_file(input_file):
         same_sequence=same_sequence,
     )
 
-    # 严格检查：标签数量必须和事件数量一致
+    # Strict check: label count must match event count
     single_ok = check_event_label_count_match(
         events=events,
         sequence=single_sequence,
@@ -866,7 +866,7 @@ def process_one_file(input_file):
             title=f"[{direction} 同侧地形标签映射]",
         )
 
-    # 贴单侧地形标签
+    # Assign single-side terrain labels
     df = apply_terrain_sequence(
         df=df,
         events=events,
@@ -875,7 +875,7 @@ def process_one_file(input_file):
         initial_label=0,
     )
 
-    # 贴同侧地形标签
+    # Assign same-side terrain labels
     df = apply_terrain_sequence(
         df=df,
         events=events,
@@ -884,7 +884,7 @@ def process_one_file(input_file):
         initial_label=0,
     )
 
-    # 最后一个 r_label == 3 起始事件后强制归 0
+    # Force labels to 0 from the final r_label == 3 start event
     if FORCE_ZERO_FROM_LAST_RIGHT_LABEL3:
         df = force_zero_from_last_right_label3(
             df=df,
@@ -916,7 +916,7 @@ def process_one_file(input_file):
 
 
 # ============================================================
-# 15. 主程序
+# 15. Main entry point
 # ============================================================
 
 def main():
