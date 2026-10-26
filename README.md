@@ -36,7 +36,7 @@ TerraCon/
     └── information/
 ```
 
-The data directories in this repository are scaffolding for the dataset layout; the full recordings and processed participant data are hosted separately.
+The `processed data/information/` directory includes `equipment_information.xlsx`, `subject_information.xlsx`, and scene images under `scence_pics/`. The full raw recordings and processed participant data are hosted separately.
 
 ## Download the dataset
 
