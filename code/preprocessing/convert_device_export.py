@@ -202,11 +202,11 @@ def parse_frame(chunk: bytes, byte_offset: int, source_filename: str, file_frame
 def iter_file_content(filepath: str) -> Iterator[Tuple[str, Dict]]:
     """
     Scan each file:
-    - 遇到 55 61 且后面至少 28 bytes：解析为 frame；
+    - At 55 61 with at least 28 remaining bytes, parse a frame;
     - Collect all other bytes into an unparsed segment;
-    - 文件尾不足 28 bytes也进入 unparsed。
+    - Trailing fragments smaller than 28 bytes are also unparsed.
 
-    Yield:("frame", record) 或 ("unparsed", segment)
+    Yield: ("frame", record) or ("unparsed", segment)
     """
     with open(filepath, "rb") as f:
         raw = f.read()
@@ -410,7 +410,7 @@ def convert_one_wit_file(filepath: str, output_path: str, sub_name: str, sensor_
         ("完整帧数", str(writer.total_frames)),
         ("未解析片段数", str(writer.total_unparsed_segments)),
         ("未解析字节数", str(writer.total_unparsed_bytes)),
-        ("记录大小", f"{RECORD_SIZE} bytes/帧"),
+        ("记录大小", f"{RECORD_SIZE} bytes/frame"),
         ("同步头", SYNC_HEADER.hex(" ").upper()),
         ("说明", "没有因为时间非法或错位而删除原始字节；完整帧保存 raw_hex，异常/尾部字节保存在未解析字节工作表。"),
     ])
@@ -431,7 +431,7 @@ def convert_and_merge_sensor_dir(input_dir: str, output_dir: str, sub_name: str,
     2) Concatenate all WIT files in numeric order.
     """
     if not os.path.isdir(input_dir):
-        print(f"  [Skipped] 目录不存在: {input_dir}")
+        print(f"  [Skipped] Directory does not exist: {input_dir}")
         return
 
     wit_files = [
