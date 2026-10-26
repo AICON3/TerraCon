@@ -13,7 +13,12 @@ For download instructions and dataset organization, see the [Dataset Guide](docs
 
 ## Information files
 
-The repository includes `processed data/information/equipment_information.xlsx`, `processed data/information/subject_information.xlsx`, and 16 scene images under `processed data/information/scence_pics/`. The complete raw recordings and processed participant-level data are distributed separately through the [TerraCon dataset repository](https://huggingface.co/datasets/AICON3/TerraCon).
+The repository includes two information workbooks:
+
+- `processed data/information/equipment_information.xlsx`
+- `processed data/information/subject_information.xlsx`
+
+It also includes 16 scene images under `processed data/information/scence_pics/`. See the [information directory guide](processed%20data/information/README.md) for the complete image list. The complete raw recordings and processed participant-level data are distributed separately through the [TerraCon dataset repository](https://huggingface.co/datasets/AICON3/TerraCon).
 
 ## What is included?
 
@@ -32,6 +37,14 @@ TerraCon/
 ├── docs/
 │   ├── DATASET.md
 │   └── DATA_PROCESSING.md
+├── processed data/
+│   └── information/
+│       ├── equipment_information.xlsx
+│       ├── subject_information.xlsx
+│       ├── README.md
+│       └── scence_pics/  (16 scene images)
+├── raw data/
+│   └── README.md
 └── code/
     ├── preprocessing/
     ├── labeling/
