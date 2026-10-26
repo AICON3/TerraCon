@@ -18,7 +18,7 @@ The repository includes two information workbooks:
 - `processed data/information/equipment_information.xlsx`
 - `processed data/information/subject_information.xlsx`
 
-It also includes 16 scene images under `processed data/information/scence_pics/`. See the [information directory guide](processed%20data/information/README.md) for the complete image list. The complete raw recordings and processed participant-level data are distributed separately through the [TerraCon dataset repository](https://huggingface.co/datasets/AICON3/TerraCon).
+Scene images have been excluded from this public repository to reduce the risk of disclosing identifying or sensitive information. The complete raw recordings and processed participant-level data are distributed separately through the [TerraCon dataset repository](https://huggingface.co/datasets/AICON3/TerraCon).
 
 ## What is included?
 
@@ -41,8 +41,7 @@ TerraCon/
 │   └── information/
 │       ├── equipment_information.xlsx
 │       ├── subject_information.xlsx
-│       ├── README.md
-│       └── scence_pics/  (16 scene images)
+│       └── README.md
 ├── raw data/
 │   └── README.md
 └── code/

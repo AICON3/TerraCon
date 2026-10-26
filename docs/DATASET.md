@@ -16,7 +16,7 @@ The project tree contains the following major areas. The exact files in a partic
 | Path | Purpose |
 |---|---|
 | `raw data/` | Original device exports and raw recordings included in the dataset release. |
-| `processed data/information/` | Dataset-level information files, including `equipment_information.xlsx`, `subject_information.xlsx`, and the directory currently spelled `scence_pics/`. |
+| `processed data/information/` | Dataset-level information workbooks, including `equipment_information.xlsx` and `subject_information.xlsx`. |
 | `processed data/sub_XXX/data/` | Processed data associated with a participant. |
 | `processed data/sub_XXX/labels/` | Labels associated with a participant's processed data. |
 | `code/preprocessing/` | Device-export conversion, IMU stream merging/alignment, scene segmentation, and processed-data construction. |
@@ -27,7 +27,7 @@ The project tree contains the following major areas. The exact files in a partic
 
 The working processed-data tree contains participant directories named `sub_001` through `sub_048`. This describes the observed directory layout; it does not imply that every participant has complete recordings for every task.
 
-The repository also includes `processed data/information/equipment_information.xlsx`, `processed data/information/subject_information.xlsx`, and 16 scene images in `processed data/information/scence_pics/`. These information files are present in the GitHub repository; the full raw recordings and processed participant-level data are distributed separately.
+The GitHub repository includes the equipment and participant information workbooks. Scene images have been excluded from this public repository to reduce the risk of exposing identifying or sensitive information. The full raw recordings and processed participant-level data are distributed separately.
 
 ## Seven-IMU naming used by preprocessing code
 
