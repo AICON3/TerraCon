@@ -494,7 +494,7 @@ def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_lab
     if len(events) != len(terrain_sequence):
         raise ValueError(
             f"{output_col}: Event count {len(events)} "
-            f"和label count {len(terrain_sequence)} do not match."
+            f"and label count {len(terrain_sequence)} do not match."
         )
 
     n = len(df)
