@@ -1,22 +1,28 @@
 # TerraCon
 
-TerraCon is a wearable-sensor dataset and code project for gait-related signal analysis and terrain recognition. The repository provides preprocessing utilities, labeling scripts, and model code for gait-angle and terrain-model experiments. Dataset files and large generated artifacts are distributed separately.
+TerraCon is a wearable-sensor dataset and code project for research on gait-related signals and terrain recognition. This GitHub repository provides preprocessing utilities, labeling scripts, and model code for gait-angle and terrain-model experiments. Dataset files and large generated artifacts are hosted separately.
 
-## Dataset and code
+## Dataset access
 
-- **Dataset:** <https://huggingface.co/datasets/AICON3/TerraCon>
-- **Source code:** <https://github.com/AICON3/TerraCon>
+- **Hugging Face dataset:** <https://huggingface.co/datasets/AICON3/TerraCon>
+- **GitHub code repository:** <https://github.com/AICON3/TerraCon>
 
-The dataset repository is the source for the released data files. This code repository does not contain the complete raw or processed dataset, generated `.pkl` datasets or splits, trained model checkpoints, training logs, or large evaluation artifacts. Some CSV split lists are included in the terrain-modeling workflow.
+The Hugging Face repository is the dataset download location. This GitHub repository primarily provides source code and documentation; it does not include the complete raw or processed dataset, generated `.pkl` datasets/splits, or trained model checkpoints. A small number of CSV split lists may be present under the terrain-modeling workflow.
 
-## Project components
+For download instructions and dataset organization, see the [Dataset Guide](docs/DATASET.md).
 
-- **Preprocessing:** conversion of device exports, merging and alignment of seven IMU streams, scene-based segmentation, and construction of processed outputs.
+## Information files
+
+The repository includes `processed data/information/equipment_information.xlsx`, `processed data/information/subject_information.xlsx`, and 16 scene images under `processed data/information/scence_pics/`. The complete raw recordings and processed participant-level data are distributed separately through the [TerraCon dataset repository](https://huggingface.co/datasets/AICON3/TerraCon).
+
+## What is included?
+
+- **Preprocessing:** conversion of device exports, merging/alignment of seven IMU streams, scene-based segmentation, and construction of processed outputs.
 - **Labeling:** gait-related and terrain-related labeling scripts.
-- **Gait-angle modeling:** dataset loading, model definitions, split logic, training, and evaluation.
-- **Terrain modeling:** dataset loading, model definitions, split logic, training, and evaluation.
+- **Gait-angle modeling:** dataset loading, model definitions, training entry point, split logic, and evaluation scripts.
+- **Terrain modeling:** dataset loading, model definitions, training entry point, split logic, and evaluation scripts.
 
-See the [Dataset Guide](docs/DATASET.md) for dataset organization and the [Data Processing Guide](docs/DATA_PROCESSING.md) for the code workflow.
+See the [Data Processing Guide](docs/DATA_PROCESSING.md) for workflow details.
 
 ## Repository structure
 
@@ -26,29 +32,32 @@ TerraCon/
 ├── docs/
 │   ├── DATASET.md
 │   └── DATA_PROCESSING.md
-├── code/
-│   ├── preprocessing/
-│   ├── labeling/
-│   ├── model_train_angle_gait/
-│   └── model_train_terrain/
-├── raw data/
-└── processed data/
-    └── information/
+└── code/
+    ├── preprocessing/
+    ├── labeling/
+    ├── model_train_angle_gait/
+    └── model_train_terrain/
 ```
 
-The `processed data/information/` directory includes `equipment_information.xlsx`, `subject_information.xlsx`, and scene images under `scence_pics/`. The full raw recordings and processed participant data are hosted separately.
+Generated datasets, trained checkpoints, logs, and large evaluation artifacts are not included in this source-code repository. Download required dataset files from the [TerraCon dataset page](https://huggingface.co/datasets/AICON3/TerraCon).
 
-## Download the dataset
-
-Install the Hugging Face CLI and download the dataset repository:
+## Downloading the dataset
 
 ```bash
 python -m pip install -U huggingface_hub
 hf download AICON3/TerraCon --repo-type dataset --local-dir ./TerraCon-data
 ```
 
-If access requires authentication, sign in with the Hugging Face CLI before downloading.
+If the repository requires authentication, sign in using the Hugging Face CLI.
 
-## Run the code
+## Running the code
 
-Start from the repository root and use the script that matches your task. Check its arguments and configuration, set input and output paths for your environment, and install the dependencies required by that script. The [Data Processing Guide](docs/DATA_PROCESSING.md) lists the main scripts and processing stages.
+Before running a script:
+
+1. Download the required dataset files and identify the expected input/output directories.
+2. Inspect the script's argument parser and configuration files.
+3. Replace machine-specific absolute paths with paths valid on your system.
+4. Install the Python packages required by the selected script.
+5. Keep an unchanged backup of raw recordings before preprocessing and test on a small copy first.
+
+Some scripts use defaults from a previous local directory layout. Command-line arguments and configuration options may differ between scripts. See the [Data Processing Guide](docs/DATA_PROCESSING.md).
