@@ -13,13 +13,13 @@ import torch.nn.functional as F
 
 
 def FFT_for_Period(x, k=5):
-    """提取时序主要周期的频率分量
+    """Extract spectral components for dominant sequence periods
 
     x: [B, T, C]
     """
     xf = torch.fft.rfft(x, dim=1)
     frequency = torch.abs(xf).mean(dim=0).mean(dim=-1)
-    frequency[0] = 0.0  # 压制直流分量
+    frequency[0] = 0.0  # Suppress the DC component
 
     # Ensure k does not exceed the number of frequency bins
     k = min(k, frequency.size(0) - 1)
@@ -148,10 +148,10 @@ class TimesNetTerrainRegression(nn.Module):
         )
 
     def forward(self, x):
-        """输入:
+        """Input:
 
             x: [B, 200, 42]
-        输出:
+        Output:
             dict: {"terrain": [B, 30, 6]}
         """
         x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
@@ -192,6 +192,6 @@ if __name__ == "__main__":
     dummy_x = torch.randn(8, 200, 42)
     out = model(dummy_x)
 
-    print("TimesNet 验证通过:")
+    print("TimesNet validation passed:")
     print("terrain shape:", out["terrain"].shape)  # torch.Size([8, 30, 6])
-    assert out["terrain"].shape == (8, 30, 6), "输出维度与训练要求不符！"
+    assert out["terrain"].shape == (8, 30, 6), "Output shape does not meet training requirements!"
