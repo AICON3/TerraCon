@@ -154,7 +154,7 @@ def detect_xyz3_direction_from_filename(input_file):
 
     raise ValueError(
         "Cannot determine direction from the filename; ensure it contains xyz3_fwd or xyz3_bwd。\n"
-        f"当前File: {input_file}"
+        f"Current file: {input_file}"
     )
 
 
@@ -494,7 +494,7 @@ def apply_terrain_sequence(df, events, terrain_sequence, output_col, initial_lab
     if len(events) != len(terrain_sequence):
         raise ValueError(
             f"{output_col}: Event count {len(events)} "
-            f"和label count {len(terrain_sequence)} do not match."
+            f"and label count {len(terrain_sequence)} do not match."
         )
 
     n = len(df)
