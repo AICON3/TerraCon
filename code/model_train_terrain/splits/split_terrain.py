@@ -197,7 +197,7 @@ def save_split(
     Save:
         train.pkl / val.pkl / test.pkl
 
-    同时Save:
+    Also save:
         train_list.csv / val_list.csv / test_list.csv
     """
 
