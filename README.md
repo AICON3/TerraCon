@@ -4,7 +4,7 @@ TerraCon is a wearable-sensor dataset and code project for research on gait-rela
 
 ## Dataset access
 
-- **Anonymous data access:** <https://anonymous-hf.com/a/j33l8tgy4q7c/>
+- **Data files:** `https://anonymous-hf.com/a/j33l8tgy4q7c/`
 - **GitHub code repository:** <https://github.com/AICON3/TerraCon>
 
 The anonymous data page provides access to the data files. This GitHub repository primarily provides source code and documentation; it does not include the complete raw or processed data, generated `.pkl` files/splits, or trained model checkpoints. A small number of CSV split lists may be present under the terrain-modeling workflow.
