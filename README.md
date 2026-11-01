@@ -4,7 +4,7 @@ TerraCon is a wearable-sensor dataset and code project for research on gait-rela
 
 ## Dataset access
 
-- **Anonymous dataset access:** [Download dataset](https://anonymous-hf.com/a/j3318tgy4q7c/)
+- **Anonymous dataset access:** [Download dataset](https://anonymous-hf.com/a/j33l8tgy4q7c/)
 - **GitHub code repository:** <https://github.com/AICON3/TerraCon>
 
 The anonymous dataset page provides access to the dataset files. This GitHub repository primarily provides source code and documentation; it does not include the complete raw or processed dataset, generated `.pkl` datasets/splits, or trained model checkpoints. A small number of CSV split lists may be present under the terrain-modeling workflow.
@@ -18,7 +18,7 @@ The repository includes two information workbooks:
 - `processed data/information/equipment_information.xlsx`
 - `processed data/information/subject_information.xlsx`
 
-Scene images have been excluded from this public repository to reduce the risk of disclosing identifying or sensitive information. The complete raw recordings and processed participant-level data are distributed separately through the [anonymous dataset page](https://anonymous-hf.com/a/j3318tgy4q7c/).
+Scene images have been excluded from this public repository to reduce the risk of disclosing identifying or sensitive information. The complete raw recordings and processed participant-level data are distributed separately through the [anonymous dataset page](https://anonymous-hf.com/a/j33l8tgy4q7c/).
 
 ## What is included?
 
@@ -51,14 +51,14 @@ TerraCon/
     └── model_train_terrain/
 ```
 
-Generated datasets, trained checkpoints, logs, and large evaluation artifacts are not included in this source-code repository. Download the dataset through the [anonymous dataset page](https://anonymous-hf.com/a/j3318tgy4q7c/).
+Generated datasets, trained checkpoints, logs, and large evaluation artifacts are not included in this source-code repository. Download the dataset through the [anonymous dataset page](https://anonymous-hf.com/a/j33l8tgy4q7c/).
 
 ## Downloading the dataset
 
 Download the ZIP archive from the anonymous dataset page, or use the direct archive endpoint:
 
 ```bash
-wget "https://anonymous-hf.com/api/a/j3318tgy4q7c/download/" -O TerraCon-dataset.zip
+wget "https://anonymous-hf.com/api/a/j33l8tgy4q7c/download/" -O TerraCon-dataset.zip
 unzip TerraCon-dataset.zip -d TerraCon-data
 ```
 
