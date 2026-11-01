@@ -15,7 +15,7 @@ This guide maps the preprocessing, labeling, and modeling components in the Terr
 | `code/model_train_angle_gait/` | Gait-angle data loading, models, split logic, training, and evaluation. |
 | `code/model_train_terrain/` | Terrain data loading, models, split logic, training, and evaluation. |
 
-The dataset is hosted separately through the [anonymous dataset page](https://anonymous-hf.com/a/j3318tgy4q7c/). The GitHub source repository does not include the complete raw or processed dataset, generated `.pkl` datasets or splits, trained model checkpoints, training logs, or large evaluation artifacts. Some CSV split lists are included under the terrain-modeling workflow.
+The dataset is hosted separately through the [anonymous dataset page](https://anonymous-hf.com/a/j33l8tgy4q7c/). The GitHub source repository does not include the complete raw or processed dataset, generated `.pkl` datasets or splits, trained model checkpoints, training logs, or large evaluation artifacts. Some CSV split lists are included under the terrain-modeling workflow.
 
 ## Environment and paths
 
