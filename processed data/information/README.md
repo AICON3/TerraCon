@@ -9,4 +9,4 @@ This directory contains reference workbooks for interpreting the TerraCon datase
 
 Scene images are not included in this public repository because they may contain identifying or sensitive information. If scene images are required for a research workflow, use an appropriately reviewed and authorized dataset distribution.
 
-The complete raw recordings and processed participant-level data are distributed separately through the anonymous dataset page: <https://anonymous-hf.com/a/j3318tgy4q7c/>.
+The complete raw recordings and processed participant-level data are distributed separately through the anonymous dataset page: <https://anonymous-hf.com/a/j33l8tgy4q7c/>.
