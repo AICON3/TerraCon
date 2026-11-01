@@ -4,8 +4,7 @@ This guide describes the high-level organization of TerraCon and how to access t
 
 ## Dataset access
 
-- **Anonymous dataset access:** <https://anonymous-hf.com/a/j3318tgy4q7c/>
-- **Code repository:** <https://github.com/AICON3/TerraCon>
+- **Anonymous dataset access:** <https://anonymous-hf.com/a/j33l8tgy4q7c/>
 
 The anonymous dataset page is the dataset distribution location. The GitHub repository focuses on source code and documentation and does not contain the complete raw or processed dataset or generated `.pkl` files.
 
