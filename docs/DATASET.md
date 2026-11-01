@@ -4,10 +4,10 @@ This guide describes the high-level organization of TerraCon and how to access t
 
 ## Dataset access
 
-- **Dataset repository:** <https://huggingface.co/datasets/AICON3/TerraCon>
+- **Anonymous dataset access:** <https://anonymous-hf.com/a/j3318tgy4q7c/>
 - **Code repository:** <https://github.com/AICON3/TerraCon>
 
-The Hugging Face repository is the dataset distribution location. The GitHub repository focuses on source code and documentation and does not contain the complete raw or processed dataset or generated `.pkl` files.
+The anonymous dataset page is the dataset distribution location. The GitHub repository focuses on source code and documentation and does not contain the complete raw or processed dataset or generated `.pkl` files.
 
 ## Dataset organization
 
@@ -27,7 +27,7 @@ The project tree contains the following major areas. The exact files in a partic
 
 The working processed-data tree contains participant directories named `sub_001` through `sub_048`. This describes the observed directory layout; it does not imply that every participant has complete recordings for every task.
 
-The GitHub repository includes the equipment and participant information workbooks. Scene images have been excluded from this public repository to reduce the risk of exposing identifying or sensitive information. The full raw recordings and processed participant-level data are distributed separately.
+The GitHub repository includes the equipment and participant information workbooks. Scene images have been excluded from this public repository to reduce the risk of exposing identifying or sensitive information. The full raw recordings and processed participant-level data are distributed separately through the anonymous dataset page above.
 
 ## Seven-IMU naming used by preprocessing code
 
